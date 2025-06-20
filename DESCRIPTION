@@ -1,0 +1,27 @@
+Package: linkeR
+Title: Link Interactive Plots and Tables in Shiny Applications
+Version: 0.1.0
+Authors@R: 
+    person("Jake", "Wagoner", , "jakew@sci.utah.edu", role = c("aut", "cre"),
+           comment = c(ORCID = "0009-0000-5053-2281"))
+Description: Provides a simple interface to create bidirectional links between 
+    interactive plots and tables in Shiny applications. Supports linking between
+    Leaflet maps, DT tables, and other interactive components through a unified
+    registry system.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.3
+Imports:
+    shiny,
+    htmltools
+Suggests:
+    leaflet,
+    DT,
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown
+Config/testthat/edition: 3
+VignetteBuilder: knitr
+URL: https://github.com/JakeWags/linkeR
+BugReports: https://github.com/JakeWags/linkeR/issues
