@@ -122,43 +122,39 @@ ui <- fluidPage(
     ),
 
     # Tab 3: Multi-Component Linking
-    # hidden until linking with plotly is integrated
-    # tabPanel(
-    #   "Multi-Component",
-    #   value = "multi",
-    #   br(),
-    #   div(
-    #     class = "alert alert-success",
-    #     h4("Scenario 3: Multiple Component Linking"),
-    #     p("Map ↔ Table ↔ Chart ↔ Summary. All components linked bidirectionally.")
-    #   ),
+    tabPanel(
+      "Multi-Component",
+      value = "multi",
+      br(),
+      div(
+        class = "alert alert-success",
+        h4("Scenario 3: Multiple Component Linking"),
+        p("Map ↔ Table ↔ Chart ↔ Summary. All components linked bidirectionally.")
+      ),
 
-    #   fluidRow(
-    #     column(4,
-    #       h5("Geographic View"),
-    #       leafletOutput("multi_map", height = "300px"),
-    #       br(),
-    #       h5("Performance Metrics"),
-    #       plotlyOutput("multi_chart", height = "250px")
-    #     ),
-    #     column(4,
-    #       h5("Business Data"),
-    #       DTOutput("multi_table"),
-    #       br(),
-    #       h5("Category Summary"),
-    #       DTOutput("multi_summary")
-    #     ),
-    #     column(4,
-    #       h5("Time Series Analysis"),
-    #       plotlyOutput("multi_timeseries", height = "300px"),
-    #       br(),
-    #       h5("Selection Info"),
-    #       verbatimTextOutput("multi_selection"),
-    #       br(),
-    #       actionButton("clear_multi_selection", "Clear Selection", class = "btn-secondary")
-    #     )
-    #   )
-    # ),
+      fluidRow(
+        column(4,
+          h5("Geographic View"),
+          leafletOutput("multi_map", height = "300px"),
+          br(),
+          h5("Performance Metrics"),
+          plotlyOutput("multi_chart", height = "250px")
+        ),
+        column(4,
+          h5("Business Data"),
+          DTOutput("multi_table"),
+        ),
+        column(4,
+          h5("Time Series Analysis"),
+          plotlyOutput("multi_timeseries", height = "300px"),
+          br(),
+          h5("Selection Info"),
+          verbatimTextOutput("multi_selection"),
+          br(),
+          actionButton("clear_multi_selection", "Clear Selection", class = "btn-secondary")
+        )
+      )
+    ),
   )
 )
 
@@ -411,13 +407,13 @@ server <- function(input, output, session) {
       ) %>%
       setView(lng = -111.9000, lat = 40.7500, zoom = 11)
   })
-  
+
   # Multi table
   output$multi_table <- renderDT({
     data <- business_data()
-    
+
     multi_data <- data[, c("name", "category", "annual_revenue")]
-    
+
     datatable(
       multi_data,
       selection = "single",
@@ -426,93 +422,101 @@ server <- function(input, output, session) {
     ) %>%
       formatCurrency("annual_revenue", currency = "$", digits = 0)
   })
-  
+
   # Multi chart (scatter plot)
   output$multi_chart <- renderPlotly({
     data <- business_data()
-    
-    p <- plot_ly(data, 
+
+    p <- plot_ly(
+      data = data,
       x = ~employees, 
       y = ~annual_revenue,
       color = ~category,
       key = ~business_id,  # This is crucial for linking!
-      text = ~name,
-      type = "scatter",
-      mode = "markers",
-      source = "multi_chart"  # Source ID for plotly linking
+      text = ~paste("Name:", name, "<br>Category:", category, "<br>Employees:", employees, "<br>Revenue: $", format(annual_revenue, big.mark = ",")),
+      type = "scatter",  # Explicitly specify the trace type
+      mode = "markers",  # Explicitly specify the mode
+      source = "multi_chart",  # Source ID for plotly linking
+      hovertemplate = "%{text}<extra></extra>"  # Custom hover template
     ) %>%
       layout(
-        title = "Revenue vs Employees",
-        xaxis = list(title = "Employees"),
-        yaxis = list(title = "Annual Revenue")
-      )
-    
-    p
+        title = list(text = "Revenue vs Employees", font = list(size = 14)),
+        xaxis = list(title = "Number of Employees"),
+        yaxis = list(title = "Annual Revenue ($)"),
+        showlegend = TRUE,
+        legend = list(title = list(text = "Business Category"))
+      ) %>%
+      config(displayModeBar = FALSE)  # Hide the plotly toolbar for cleaner look
+
+    return(p)
   })
-  
-  # Multi summary table
-  output$multi_summary <- renderDT({
-    data <- business_data()
-    
-    summary_data <- data %>%
-      group_by(category) %>%
-      summarise(
-        count = n(),
-        avg_revenue = mean(annual_revenue),
-        avg_employees = round(mean(employees)),
-        .groups = "drop"
-      )
-    
-    datatable(
-      summary_data,
-      rownames = FALSE,
-      options = list(pageLength = 5, searching = FALSE)
-    ) %>%
-      formatCurrency("avg_revenue", currency = "$", digits = 0)
-  })
-  
-  # Multi time series
+
   output$multi_timeseries <- renderPlotly({
     if (!is.null(registries$multi)) {
       selection <- registries$multi$get_selection()
       if (!is.null(selection$selected_id)) {
         data <- business_data()
         selected_business <- data[data$business_id == selection$selected_id, ]
-        
+
         if (nrow(selected_business) > 0) {
           # Extract monthly data
           monthly_cols <- paste0("month_", sprintf("%02d", 1:12))
           monthly_values <- as.numeric(selected_business[1, monthly_cols])
-          
+
           time_data <- data.frame(
             month = 1:12,
-            revenue = monthly_values
+            revenue = monthly_values,
+            month_name = month.abb[1:12]  # Add month names for better display
           )
-          
-          p <- plot_ly(time_data,
+
+          p <- plot_ly(
+            data = time_data,
             x = ~month,
             y = ~revenue,
-            type = "scatter",
-            mode = "lines+markers",
+            type = "scatter",  # Explicitly specify type
+            mode = "lines+markers",  # Explicitly specify mode
             line = list(color = "blue", width = 3),
-            marker = list(size = 8)
+            marker = list(size = 8, color = "blue"),
+            text = ~paste("Month:", month_name, "<br>Revenue: $", format(revenue, big.mark = ",")),
+            hovertemplate = "%{text}<extra></extra>"
           ) %>%
             layout(
-              title = paste("Monthly Revenue:", selected_business$name),
-              xaxis = list(title = "Month"),
-              yaxis = list(title = "Revenue")
-            )
-          
+              title = list(text = paste("Monthly Revenue:", selected_business$name), font = list(size = 14)),
+              xaxis = list(
+                title = "Month",
+                tickmode = "array",
+                tickvals = 1:12,
+                ticktext = month.abb[1:12]
+              ),
+              yaxis = list(title = "Revenue ($)"),
+              showlegend = FALSE
+            ) %>%
+            config(displayModeBar = FALSE)
+
           return(p)
         }
       }
     }
-    
+
     # Default empty chart
     plot_ly() %>%
-      layout(title = "Select a business to view time series")
+      add_annotations(
+        text = "Select a business to view time series",
+        x = 0.5,
+        y = 0.5,
+        xref = "paper",
+        yref = "paper",
+        showarrow = FALSE,
+        font = list(size = 16, color = "gray")
+      ) %>%
+      layout(
+        title = "Monthly Revenue Trend",
+        xaxis = list(title = "Month", showgrid = FALSE, showticklabels = FALSE),
+        yaxis = list(title = "Revenue", showgrid = FALSE, showticklabels = FALSE)
+      ) %>%
+      config(displayModeBar = FALSE)
   })
-  
+
   # Initialize multi-component linking
   observeEvent(input$main_tabs, {
     if (input$main_tabs == "multi" && is.null(registries$multi)) {
@@ -522,8 +526,11 @@ server <- function(input, output, session) {
         multi_table = business_data,
         shared_id_column = "business_id"
       )
-      
+
       # Add plotly click handling
+      # This is essentially an observer for plotly clicks to update the registry selection manually
+      # This is necessary because plotly does not automatically trigger the registry
+      # This paradigm allows for any custom behavior to access the registry
       observeEvent(event_data("plotly_click", source = "multi_chart"), {
         clicked_data <- event_data("plotly_click", source = "multi_chart")
         if (!is.null(clicked_data) && !is.null(clicked_data$key)) {
@@ -532,7 +539,7 @@ server <- function(input, output, session) {
       })
     }
   })
-  
+
   # Multi selection display
   output$multi_selection <- renderText({
     if (!is.null(registries$multi)) {
@@ -551,7 +558,7 @@ server <- function(input, output, session) {
     }
     return("No selection")
   })
-  
+
   # Clear multi selection
   observeEvent(input$clear_multi_selection, {
     if (!is.null(registries$multi)) {
