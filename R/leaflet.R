@@ -41,7 +41,6 @@ register_leaflet <- function(registry, leaflet_output_id, data_reactive,
   )
 }
 
-# Implementation of leaflet-specific observers (internal function)
 setup_leaflet_observers <- function(component_id, session, components, shared_state, on_selection_change) {
   # Observer for map marker clicks
   observer1 <- shiny::observeEvent(session$input[[paste0(component_id, "_marker_click")]],
@@ -57,18 +56,18 @@ setup_leaflet_observers <- function(component_id, session, components, shared_st
       selected_data <- current_data[current_data[[component_info$shared_id_column]] == clicked_marker_id, ]
       selected_data <- if(nrow(selected_data) > 0) selected_data[1, ] else NULL
 
-      # For direct clicks, only handle the custom click handler if it's meant to OVERRIDE default behavior
+      # Get map proxy and clear any existing popups
+      map_proxy <- leaflet::leafletProxy(component_id, session = session)
+      map_proxy %>% leaflet::clearPopups()
+
+      # Apply the same behavior as linked clicks for consistency
       if (!is.null(component_info$config$click_handler) && is.function(component_info$config$click_handler)) {
-        # Get map proxy
-        map_proxy <- leaflet::leafletProxy(component_id, session = session)
-
-        # Clear any existing popups first to prevent double popups
-        map_proxy %>% leaflet::clearPopups()
-
-        # Call the custom handler instead of the default popup
+        # Custom handler
         component_info$config$click_handler(map_proxy, selected_data, session)
+      } else {
+        # Default handler - same as what linked clicks use
+        apply_default_leaflet_behavior(map_proxy, selected_data, component_info)
       }
-      # If no custom handler, let the default leaflet popup behavior happen
 
       # Update shared state (this will trigger other components)
       shared_state$selected_id <- clicked_marker_id
@@ -116,7 +115,31 @@ setup_leaflet_observers <- function(component_id, session, components, shared_st
   return(list(observer1, observer2))
 }
 
-# Update the leaflet selection function to use the user's click handler
+# Helper function for consistent default leaflet behavior
+apply_default_leaflet_behavior <- function(map_proxy, selected_data, component_info) {
+  if (!is.null(selected_data)) {
+    # Create default popup content
+    popup_content <- paste0("<b>Selected</b><br>")
+    popup_content <- paste0(popup_content, "ID: ", selected_data[[component_info$shared_id_column]], "<br>")
+
+    # Add the popup and fly to location
+    map_proxy %>%
+      leaflet::setView(
+        lng = selected_data[[component_info$config$lng_col]],
+        lat = selected_data[[component_info$config$lat_col]],
+        zoom = component_info$config$highlight_zoom
+      ) %>%
+      leaflet::addPopups(
+        lng = selected_data[[component_info$config$lng_col]],
+        lat = selected_data[[component_info$config$lat_col]],
+        popup = popup_content
+      )
+  } else {
+    # Handle deselection
+    map_proxy %>% leaflet::clearPopups()
+  }
+}
+
 update_leaflet_selection <- function(component_id, selected_id, session, components) {
   if (!requireNamespace("leaflet", quietly = TRUE)) {
     return()
@@ -143,40 +166,21 @@ update_leaflet_selection <- function(component_id, selected_id, session, compone
   # Get map proxy
   map_proxy <- leaflet::leafletProxy(component_id, session = session)
 
+  # Clear existing popups first
+  map_proxy %>% leaflet::clearPopups()
+
   if (!is.null(selected_id)) {
     # Find the selected data
     selected_data <- current_data[current_data[[component_info$shared_id_column]] == selected_id, ]
+    selected_data <- if(nrow(selected_data) > 0) selected_data[1, ] else NULL
 
-    if (nrow(selected_data) > 0) {
-      selected_data <- selected_data[1, ]
-
-      # Use user's custom click handler if provided
-      if (!is.null(component_info$config$click_handler) && is.function(component_info$config$click_handler)) {
-        # Call the user's custom handler - this should do EXACTLY what their direct clicks do
-        component_info$config$click_handler(map_proxy, selected_data, session)
-      } else {
-        # Default behavior if no custom handler provided
-        # Clear previous highlights
-        highlight_group_name <- paste0("highlight_", component_id)
-        map_proxy %>% leaflet::clearGroup(group = highlight_group_name)
-
-        # Add highlight marker and fly to location (default behavior)
-        map_proxy %>%
-          leaflet::addAwesomeMarkers(
-            data = selected_data,
-            lng = ~ get(component_info$config$lng_col),
-            lat = ~ get(component_info$config$lat_col),
-            layerId = paste0("highlight_", selected_id),
-            icon = component_info$config$highlight_icon,
-            group = highlight_group_name,
-            popup = ~ paste0("Selected: ", htmltools::htmlEscape(as.character(get(component_info$shared_id_column))))
-          ) %>%
-          leaflet::flyTo(
-            lng = selected_data[[component_info$config$lng_col]],
-            lat = selected_data[[component_info$config$lat_col]],
-            zoom = component_info$config$highlight_zoom
-          )
-      }
+    # Use user's custom click handler if provided
+    if (!is.null(component_info$config$click_handler) && is.function(component_info$config$click_handler)) {
+      # Call the user's custom handler
+      component_info$config$click_handler(map_proxy, selected_data, session)
+    } else {
+      # Use consistent default behavior
+      apply_default_leaflet_behavior(map_proxy, selected_data, component_info)
     }
   } else {
     # Handle deselection
@@ -184,9 +188,7 @@ update_leaflet_selection <- function(component_id, selected_id, session, compone
       # Let user's handler deal with deselection
       component_info$config$click_handler(map_proxy, NULL, session)
     } else {
-      # Default deselection behavior
-      highlight_group_name <- paste0("highlight_", component_id)
-      map_proxy %>% leaflet::clearGroup(group = highlight_group_name)
+      # Default deselection (already cleared popups above)
     }
   }
 }
