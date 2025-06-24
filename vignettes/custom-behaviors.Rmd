@@ -1,0 +1,231 @@
+---
+title: "Custom Click Behaviors"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Custom Click Behaviors}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+```{r setup}
+library(linkeR)
+library(shiny)
+library(leaflet)
+library(DT)
+```
+
+# Customizing Click Behaviors
+
+While `linkeR` provides sensible defaults, you often want custom behaviors when users click on linked components. This vignette shows how to create rich, interactive experiences.
+
+## Custom Leaflet Click Handler
+
+You can define exactly what happens when a leaflet marker is clicked (either directly or via linking):
+
+```{r custom-leaflet}
+server <- function(input, output, session) {
+  
+  business_data <- reactive({
+    # Your business data here
+  })
+  
+  output$business_map <- renderLeaflet({
+    # Render your map (no popup needed - custom handler will create it)
+    leaflet(business_data()) %>%
+      addTiles() %>%
+      addCircleMarkers(
+        lng = ~longitude,
+        lat = ~latitude,
+        layerId = ~business_id,
+        radius = ~sqrt(revenue/1000) + 3
+      )
+  })
+  
+  output$business_table <- renderDT({
+    # Your table rendering code
+  })
+  
+  # Link with custom leaflet behavior
+  link_plots(
+    session,
+    business_map = business_data,
+    business_table = business_data,
+    shared_id_column = "business_id",
+    
+    # Custom handler for leaflet clicks
+    leaflet_click_handler = function(map_proxy, selected_data, session) {
+      if (!is.null(selected_data)) {
+        # Create rich popup
+        popup_content <- paste0(
+          "<div style='min-width: 200px;'>",
+          "<h4 style='color: #2c3e50;'>", selected_data$name, "</h4>",
+          "<p><strong>Revenue:</strong> $", format(selected_data$revenue, big.mark = ","), "</p>",
+          "<p><strong>Category:</strong> ", selected_data$category, "</p>",
+          "<p><strong>Rating:</strong> ", selected_data$rating, "/5.0 ⭐</p>",
+          "</div>"
+        )
+        
+        # Custom zoom and popup
+        map_proxy %>%
+          leaflet::setView(
+            lng = selected_data$longitude, 
+            lat = selected_data$latitude, 
+            zoom = 15  # Custom zoom level
+          ) %>%
+          leaflet::clearPopups() %>%
+          leaflet::addPopups(
+            lng = selected_data$longitude,
+            lat = selected_data$latitude,
+            popup = popup_content
+          )
+      } else {
+        # Handle deselection
+        map_proxy %>% leaflet::clearPopups()
+      }
+    }
+  )
+}
+```
+
+## Custom DT Click Handler
+
+Similarly, you can customize table selection behavior:
+
+```{r custom-dt}
+link_plots(
+  session,
+  business_map = business_data,
+  business_table = business_data,
+  shared_id_column = "business_id",
+  
+  # Custom handler for table clicks
+  dt_click_handler = function(dt_proxy, selected_data, session) {
+    if (!is.null(selected_data)) {
+      # Find the row and select it
+      current_data <- business_data()
+      row_idx <- which(current_data$business_id == selected_data$business_id)
+      
+      if (length(row_idx) > 0) {
+        # Select and scroll to row
+        DT::selectRows(dt_proxy, selected = row_idx[1])
+        
+        # Optional: scroll to the row
+        page_size <- 10  # Your page size
+        target_page <- ceiling(row_idx[1] / page_size)
+        DT::selectPage(dt_proxy, target_page)
+        
+        # Show additional info
+        showNotification(
+          paste("Selected:", selected_data$name, "- Revenue: $", 
+                format(selected_data$revenue, big.mark = ",")),
+          type = "message",
+          duration = 3
+        )
+      }
+    } else {
+      # Handle deselection
+      DT::selectRows(dt_proxy, selected = integer(0))
+    }
+  }
+)
+```
+
+## Global Selection Callback
+
+You can also add a callback that fires whenever any selection changes:
+
+```{r global-callback}
+link_plots(
+  session,
+  business_map = business_data,
+  business_table = business_data,
+  shared_id_column = "business_id",
+  
+  # Global callback for all selection changes
+  on_selection_change = function(selected_id, selected_data, source_id, session) {
+    if (!is.null(selected_data)) {
+      # Update other UI elements
+      output$selected_business_info <- renderText({
+        paste0(
+          "Selected: ", selected_data$name, "\n",
+          "Source: ", source_id, "\n",
+          "Revenue: $", format(selected_data$revenue, big.mark = ",")
+        )
+      })
+      
+      # Log for analytics
+      cat("Selection event:", selected_id, "from", source_id, "\n")
+      
+      # Update other reactive values
+      current_selection(selected_data)
+    } else {
+      # Handle deselection
+      output$selected_business_info <- renderText("No selection")
+      current_selection(NULL)
+    }
+  }
+)
+```
+
+## Best Practices
+
+1. **Consistent Experience**: Custom handlers should provide the same experience whether triggered by direct clicks or linking
+
+2. **Error Handling**: Wrap custom logic in `tryCatch()` for robustness
+
+3. **Performance**: Keep custom handlers lightweight to avoid UI lag
+
+4. **Visual Feedback**: Provide clear visual feedback for user actions
+
+5. **Deselection**: Always handle the case where `selected_data` is `NULL`
+
+## Advanced Example: Conditional Behavior
+
+```{r conditional}
+leaflet_click_handler = function(map_proxy, selected_data, session) {
+  if (!is.null(selected_data)) {
+    # Different behavior based on data properties
+    if (selected_data$risk_level == "High") {
+      # Show warning for high-risk items
+      showModal(modalDialog(
+        title = "High Risk Alert",
+        paste("This location has high risk level:", selected_data$name),
+        easyClose = TRUE
+      ))
+    }
+    
+    # Color popup based on risk
+    popup_color <- switch(selected_data$risk_level,
+      "Low" = "#d4edda",
+      "Medium" = "#fff3cd",
+      "High" = "#f8d7da"
+    )
+    
+    popup_content <- paste0(
+      "<div style='background-color: ", popup_color, "; padding: 10px; border-radius: 5px;'>",
+      "<h4>", selected_data$name, "</h4>",
+      "<p>Risk Level: ", selected_data$risk_level, "</p>",
+      "</div>"
+    )
+    
+    map_proxy %>%
+      leaflet::setView(lng = selected_data$longitude, lat = selected_data$latitude, zoom = 13) %>%
+      leaflet::clearPopups() %>%
+      leaflet::addPopups(
+        lng = selected_data$longitude,
+        lat = selected_data$latitude,
+        popup = popup_content
+      )
+  }
+}
+```
+
+This approach lets you create rich, context-aware interactions that respond intelligently to your data.

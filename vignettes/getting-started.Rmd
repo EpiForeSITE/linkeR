@@ -1,0 +1,122 @@
+---
+title: "Getting Started with linkeR"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started with linkeR}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE  # Set to FALSE since these are Shiny examples
+)
+```
+
+```{r setup}
+library(linkeR)
+library(shiny)
+library(leaflet)
+library(DT)
+```
+
+# Introduction
+
+The `linkeR` package provides a simple way to create bidirectional links between interactive components in Shiny applications. When users click on one component (like a map marker), other linked components (like tables) automatically update to show related information.
+
+## Core Concept
+
+The main idea is simple: **one click, multiple updates**. When you select an item in any linked component, all other linked components highlight or select the corresponding item.
+
+## Basic Usage
+
+The simplest way to link components is with the `link_plots()` function:
+
+```{r basic-example}
+library(shiny)
+library(leaflet)
+library(DT)
+library(linkeR)
+
+# Sample data with shared IDs
+sample_data <- data.frame(
+  id = 1:10,
+  name = paste("Location", 1:10),
+  latitude = runif(10, 40.7, 40.8),
+  longitude = runif(10, -111.95, -111.85),
+  value = runif(10, 100, 1000)
+)
+
+ui <- fluidPage(
+  titlePanel("Basic linkeR Example"),
+  
+  fluidRow(
+    column(6,
+      h4("Map"),
+      leafletOutput("my_map")
+    ),
+    column(6,
+      h4("Table"),
+      DTOutput("my_table")
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  
+  # Create reactive data
+  my_data <- reactive({ sample_data })
+  
+  # Render components
+  output$my_map <- renderLeaflet({
+    leaflet(my_data()) %>%
+      addTiles() %>%
+      addMarkers(
+        lng = ~longitude,
+        lat = ~latitude,
+        layerId = ~id,  # Critical: this must match your shared_id_column
+        popup = ~paste("Name:", name)
+      )
+  })
+  
+  output$my_table <- renderDT({
+    datatable(
+      my_data()[, c("name", "value")],
+      selection = "single",
+      rownames = FALSE
+    )
+  })
+  
+  # Set up linking - this is all you need!
+  link_plots(
+    session,
+    my_map = my_data,      # component_name = reactive_data
+    my_table = my_data,    # component_name = reactive_data
+    shared_id_column = "id"  # column that links the components
+  )
+}
+
+shinyApp(ui, server)
+```
+
+## Key Requirements
+
+For linking to work, you need:
+
+1. **Shared ID column**: All linked datasets must have a common identifier column
+2. **Matching layerId/rowId**: Components must use the shared ID for selection
+3. **Reactive data**: Data must be wrapped in `reactive()`
+
+## What Happens When You Click?
+
+- **Map marker click**: Table selects corresponding row
+- **Table row click**: Map zooms to marker and shows popup
+- **Consistent behavior**: Both interactions produce the same visual result
+
+# Next Steps
+
+- See `vignette("custom-behaviors")` for advanced customization
+- See `vignette("multiple-components")` for complex linking scenarios
+- See `vignette("troubleshooting")` for common issues and solutions

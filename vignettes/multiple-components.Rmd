@@ -1,0 +1,329 @@
+---
+title: "Linking Multiple Components"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Linking Multiple Components}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+```{r setup}
+library(linkeR)
+library(shiny)
+library(leaflet)
+library(DT)
+library(plotly)
+```
+
+# Linking Multiple Components
+
+`linkeR` can link any number of interactive components together. This vignette shows how to create complex dashboards with maps, tables, charts, and other elements all responding to the same selections.
+
+## Three-Component Example
+
+Here's a dashboard with a map, table, and plotly chart all linked together:
+
+```{r three-component}
+ui <- fluidPage(
+  titlePanel("Multi-Component Dashboard"),
+  
+  fluidRow(
+    column(4,
+      h4("Geographic View"),
+      leafletOutput("map")
+    ),
+    column(4,
+      h4("Data Table"),
+      DTOutput("table")
+    ),
+    column(4,
+      h4("Performance Chart"),
+      plotlyOutput("chart")
+    )
+  ),
+  
+  fluidRow(
+    column(12,
+      h4("Selection Details"),
+      verbatimTextOutput("selection_info")
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  
+  # Sample business data
+  business_data <- reactive({
+    data.frame(
+      business_id = paste0("BIZ_", 1:20),
+      name = paste("Business", 1:20),
+      latitude = runif(20, 40.7, 40.8),
+      longitude = runif(20, -111.95, -111.85),
+      revenue = runif(20, 100000, 1000000),
+      employees = sample(10:100, 20, replace = TRUE),
+      category = sample(c("Tech", "Retail", "Food"), 20, replace = TRUE)
+    )
+  })
+  
+  # Render map
+  output$map <- renderLeaflet({
+    leaflet(business_data()) %>%
+      addTiles() %>%
+      addCircleMarkers(
+        lng = ~longitude,
+        lat = ~latitude,
+        layerId = ~business_id,
+        radius = 5,
+        popup = ~paste("Business:", name)
+      )
+  })
+  
+  # Render table
+  output$table <- renderDT({
+    data <- business_data()
+    display_data <- data[, c("name", "category", "revenue", "employees")]
+    
+    datatable(
+      display_data,
+      selection = "single",
+      rownames = FALSE
+    ) %>%
+      formatCurrency("revenue", currency = "$", digits = 0)
+  })
+  
+  # Render chart
+  output$chart <- renderPlotly({
+    plot_ly(
+      data = business_data(),
+      x = ~employees,
+      y = ~revenue,
+      key = ~business_id,  # Critical: this enables plotly linking
+      text = ~name,
+      type = "scatter",
+      mode = "markers",
+      source = "business_chart"  # Source ID for plotly events
+    ) %>%
+      layout(
+        title = "Revenue vs Employees",
+        xaxis = list(title = "Employees"),
+        yaxis = list(title = "Revenue")
+      )
+  })
+  
+  # Link the map and table (plotly requires special handling)
+  registry <- link_plots(
+    session,
+    map = business_data,
+    table = business_data,
+    shared_id_column = "business_id"
+  )
+  
+  # Handle plotly clicks separately
+  observeEvent(event_data("plotly_click", source = "business_chart"), {
+    clicked_data <- event_data("plotly_click", source = "business_chart")
+    if (!is.null(clicked_data) && !is.null(clicked_data$key)) {
+      # Update the registry selection
+      registry$set_selection(clicked_data$key, "chart")
+    }
+  })
+  
+  # Display selection info
+  output$selection_info <- renderText({
+    selection <- registry$get_selection()
+    if (!is.null(selection$selected_id)) {
+      data <- business_data()
+      selected <- data[data$business_id == selection$selected_id, ]
+      if (nrow(selected) > 0) {
+        paste0(
+          "Selected: ", selected$name, "\n",
+          "Source: ", selection$source, "\n",
+          "Revenue: $", format(selected$revenue, big.mark = ","), "\n",
+          "Employees: ", selected$employees
+        )
+      }
+    } else {
+      "No selection"
+    }
+  })
+}
+```
+
+## Adding More Component Types
+
+### Summary Tables
+
+You can link summary tables that show aggregated information:
+
+```{r summary-table}
+# In your server function
+output$category_summary <- renderDT({
+  data <- business_data()
+  
+  summary_data <- data %>%
+    group_by(category) %>%
+    summarise(
+      count = n(),
+      avg_revenue = mean(revenue),
+      total_employees = sum(employees),
+      .groups = "drop"
+    )
+  
+  datatable(
+    summary_data,
+    selection = "single",
+    rownames = FALSE,
+    options = list(pageLength = 5, searching = FALSE)
+  ) %>%
+    formatCurrency("avg_revenue", currency = "$", digits = 0)
+})
+
+# Link it by adding to your link_plots call
+link_plots(
+  session,
+  map = business_data,
+  table = business_data,
+  summary = business_data,  # Same data, different view
+  shared_id_column = "business_id"
+)
+```
+
+### Time Series Charts
+
+For dynamic charts that update based on selection:
+
+```{r time-series}
+# Reactive chart that updates with selection
+output$monthly_trend <- renderPlotly({
+  registry <- get_registry()  # However you store your registry
+  selection <- registry$get_selection()
+  
+  if (!is.null(selection$selected_id)) {
+    # Get monthly data for selected business
+    selected_business <- business_data()[
+      business_data()$business_id == selection$selected_id, 
+    ]
+    
+    # Generate monthly data (example)
+    monthly_data <- data.frame(
+      month = 1:12,
+      revenue = selected_business$revenue / 12 * runif(12, 0.8, 1.2)
+    )
+    
+    plot_ly(
+      data = monthly_data,
+      x = ~month,
+      y = ~revenue,
+      type = "scatter",
+      mode = "lines+markers"
+    ) %>%
+      layout(
+        title = paste("Monthly Trend:", selected_business$name),
+        xaxis = list(title = "Month"),
+        yaxis = list(title = "Revenue")
+      )
+  } else {
+    # Empty chart with instructions
+    plot_ly() %>%
+      add_annotations(
+        text = "Select a business to view trends",
+        x = 0.5, y = 0.5,
+        xref = "paper", yref = "paper",
+        showarrow = FALSE
+      )
+  }
+})
+```
+
+## Managing Complex State
+
+For complex dashboards, you might want centralized state management:
+
+```{r state-management}
+server <- function(input, output, session) {
+  
+  # Centralized selection state
+  current_selection <- reactiveVal(NULL)
+  
+  # Business data
+  business_data <- reactive({ /* your data */ })
+  
+  # Set up linking with global callback
+  registry <- link_plots(
+    session,
+    map = business_data,
+    table = business_data,
+    shared_id_column = "business_id",
+    
+    # Update centralized state
+    on_selection_change = function(selected_id, selected_data, source_id, session) {
+      current_selection(selected_data)
+      
+      # Log for debugging
+      cat("Selection changed:", selected_id, "from", source_id, "\n")
+    }
+  )
+  
+  # All outputs can react to current_selection()
+  output$detail_panel <- renderUI({
+    selected <- current_selection()
+    if (!is.null(selected)) {
+      # Rich detail panel
+      fluidRow(
+        column(6, 
+          h4("Business Details"),
+          p("Name:", selected$name),
+          p("Category:", selected$category)
+        ),
+        column(6,
+          h4("Performance"),
+          p("Revenue:", scales::dollar(selected$revenue)),
+          p("Employees:", selected$employees)
+        )
+      )
+    } else {
+      div("Select a business to view details")
+    }
+  })
+  
+  output$related_businesses <- renderDT({
+    selected <- current_selection()
+    if (!is.null(selected)) {
+      # Show businesses in same category
+      related <- business_data()[
+        business_data()$category == selected$category & 
+        business_data()$business_id != selected$business_id,
+      ]
+      
+      datatable(
+        related[, c("name", "revenue", "employees")],
+        caption = paste("Other", selected$category, "businesses"),
+        options = list(pageLength = 5)
+      )
+    }
+  })
+}
+```
+
+## Performance Tips
+
+1. **Limit Updates**: Use `req()` to avoid unnecessary updates
+2. **Debounce Fast Clicks**: Use `debounce()` for rapid selection changes
+3. **Lazy Loading**: Only render expensive components when selected
+4. **Efficient Data**: Keep linked datasets reasonably sized
+
+## Troubleshooting Multiple Components
+
+- **IDs must match**: Ensure all components use the same shared ID values
+- **Reactive context**: All data must be in `reactive()` expressions
+- **Observer conflicts**: Be careful with multiple `observeEvent()` on the same inputs
+- **plotly requires special handling**: Use the registry's `set_selection()` method for plotly clicks
+
+With these patterns, you can create rich, interconnected dashboards where every component enhances the user's understanding of the data.
