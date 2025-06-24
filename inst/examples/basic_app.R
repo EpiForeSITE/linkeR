@@ -169,7 +169,7 @@ server <- function(input, output, session) {
                                    c("lightgreen", "orange", "lightcoral"))
       )
   })
-  
+
   # Initialize registry once when the session starts
   observeEvent(session$clientData, {
     # Set up linking with custom click handlers that match the original behavior

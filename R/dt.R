@@ -88,7 +88,7 @@ setup_datatable_observers <- function(component_id, session, components, shared_
   return(list(observer1, observer2))
 }
 
-# Update the DT selection function to use user's click handler
+# Update DT selection based on shared state
 update_dt_selection <- function(component_id, selected_id, session, components) {
   if (!requireNamespace("DT", quietly = TRUE)) {
     return()
