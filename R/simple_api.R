@@ -12,25 +12,50 @@
 #'   Defaults to "longitude".
 #' @param leaflet_lat_col Character string naming the latitude column for leaflet maps.
 #'   Defaults to "latitude".
+#' @param leaflet_click_handler Optional function that handles leaflet marker clicks.
+#'   This will be used for both direct clicks and when other components select this marker.
+#'   Function should accept (map_proxy, selected_data, session).
+#' @param dt_click_handler Optional function that handles DT row selections.
+#'   This will be used for both direct clicks and when other components select this row.
+#'   Function should accept (dt_proxy, selected_data, session).
+#' @param on_selection_change Optional callback function that gets called when selection changes.
+#'   Function should accept parameters: (selected_id, selected_data, source_component_id, session)
 #' @return Invisibly returns the created registry object
 #' @export
 #' @examples
 #' \dontrun{
-#' # In your Shiny server function
+#' # Basic usage with default behaviors
 #' link_plots(
 #'   session,
-#'   myMap = reactive({
-#'     map_data
-#'   }),
-#'   myTable = reactive({
-#'     table_data
-#'   }),
+#'   myMap = reactive({ map_data }),
+#'   myTable = reactive({ table_data }),
 #'   shared_id_column = "location_id"
+#' )
+#'
+#' # With custom leaflet click behavior
+#' link_plots(
+#'   session,
+#'   myMap = reactive({ map_data }),
+#'   myTable = reactive({ table_data }),
+#'   shared_id_column = "location_id",
+#'   leaflet_click_handler = function(map_proxy, selected_data, session) {
+#'     # Custom popup and zoom behavior
+#'     map_proxy %>%
+#'       leaflet::setView(lng = selected_data$longitude, lat = selected_data$latitude, zoom = 15) %>%
+#'       leaflet::addPopups(
+#'         lng = selected_data$longitude, 
+#'         lat = selected_data$latitude,
+#'         popup = paste0("<b>", selected_data$name, "</b><br>Custom info here")
+#'       )
+#'   }
 #' )
 #' }
 link_plots <- function(session, ..., shared_id_column,
                        leaflet_lng_col = "longitude",
-                       leaflet_lat_col = "latitude") {
+                       leaflet_lat_col = "latitude",
+                       leaflet_click_handler = NULL,
+                       dt_click_handler = NULL,
+                       on_selection_change = NULL) {
   # Validate inputs
   if (missing(session)) {
     stop("session argument is required")
@@ -46,14 +71,14 @@ link_plots <- function(session, ..., shared_id_column,
     stop("At least two components must be specified for linking")
   }
 
-  # Create registry
-  registry <- create_link_registry(session)
+  # Create registry with callback
+  registry <- create_link_registry(session, on_selection_change = on_selection_change)
 
   # Register each component
   for (comp_name in names(components)) {
     comp_data <- components[[comp_name]]
 
-    # Detect component type (this is a simplified heuristic)
+    # Detect component type
     comp_type <- detect_component_type(comp_name, comp_data)
 
     # Configure component-specific settings
@@ -61,6 +86,10 @@ link_plots <- function(session, ..., shared_id_column,
     if (comp_type == "leaflet") {
       config$lng_col <- leaflet_lng_col
       config$lat_col <- leaflet_lat_col
+      config$highlight_zoom <- 12
+      config$click_handler <- leaflet_click_handler  # Store user's click handler
+    } else if (comp_type == "datatable") {
+      config$click_handler <- dt_click_handler  # Store user's click handler
     }
 
     # Register component

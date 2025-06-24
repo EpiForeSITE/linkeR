@@ -42,7 +42,7 @@ register_leaflet <- function(registry, leaflet_output_id, data_reactive,
 }
 
 # Implementation of leaflet-specific observers (internal function)
-setup_leaflet_observers <- function(component_id, session, components, shared_state) {
+setup_leaflet_observers <- function(component_id, session, components, shared_state, on_selection_change) {
   # Observer for map marker clicks
   observer1 <- shiny::observeEvent(session$input[[paste0(component_id, "_marker_click")]],
     {
@@ -51,7 +51,26 @@ setup_leaflet_observers <- function(component_id, session, components, shared_st
 
       clicked_marker_id <- clicked_event$id
 
-      # Update shared state
+      # Get the selected data
+      component_info <- components[[component_id]]
+      current_data <- component_info$data_reactive()
+      selected_data <- current_data[current_data[[component_info$shared_id_column]] == clicked_marker_id, ]
+      selected_data <- if(nrow(selected_data) > 0) selected_data[1, ] else NULL
+
+      # For direct clicks, only handle the custom click handler if it's meant to OVERRIDE default behavior
+      if (!is.null(component_info$config$click_handler) && is.function(component_info$config$click_handler)) {
+        # Get map proxy
+        map_proxy <- leaflet::leafletProxy(component_id, session = session)
+
+        # Clear any existing popups first to prevent double popups
+        map_proxy %>% leaflet::clearPopups()
+
+        # Call the custom handler instead of the default popup
+        component_info$config$click_handler(map_proxy, selected_data, session)
+      }
+      # If no custom handler, let the default leaflet popup behavior happen
+
+      # Update shared state (this will trigger other components)
       shared_state$selected_id <- clicked_marker_id
       shared_state$selection_source <- component_id
     },
@@ -66,7 +85,28 @@ setup_leaflet_observers <- function(component_id, session, components, shared_st
       if (!is.null(shared_state$selection_source) &&
         shared_state$selection_source != component_id) {
         selected_id <- shared_state$selected_id
+
+        # For linked selections, use the update function
         update_leaflet_selection(component_id, selected_id, session, components)
+
+        if (!is.null(on_selection_change) && is.function(on_selection_change)) {
+          # Get selected data
+          selected_data <- NULL
+          if (!is.null(selected_id)) {
+            component_info <- components[[component_id]]
+            current_data <- component_info$data_reactive()
+            match_row <- current_data[current_data[[component_info$shared_id_column]] == selected_id, ]
+            if (nrow(match_row) > 0) {
+              selected_data <- match_row[1, ]
+            }
+          }
+
+          tryCatch({
+            on_selection_change(selected_id, selected_data, shared_state$selection_source, session)
+          }, error = function(e) {
+            warning("Error in on_selection_change callback: ", e$message)
+          })
+        }
       }
     },
     ignoreNULL = FALSE,
@@ -76,7 +116,7 @@ setup_leaflet_observers <- function(component_id, session, components, shared_st
   return(list(observer1, observer2))
 }
 
-# Internal function to update leaflet selection
+# Update the leaflet selection function to use the user's click handler
 update_leaflet_selection <- function(component_id, selected_id, session, components) {
   if (!requireNamespace("leaflet", quietly = TRUE)) {
     return()
@@ -103,35 +143,50 @@ update_leaflet_selection <- function(component_id, selected_id, session, compone
   # Get map proxy
   map_proxy <- leaflet::leafletProxy(component_id, session = session)
 
-  # Clear previous highlights
-  highlight_group_name <- paste0("highlight_", component_id)
-  map_proxy %>% leaflet::clearGroup(group = highlight_group_name)
-
   if (!is.null(selected_id)) {
-    # Find the point to highlight
-    point_to_highlight <- current_data[
-      current_data[[component_info$shared_id_column]] == selected_id,
-    ]
+    # Find the selected data
+    selected_data <- current_data[current_data[[component_info$shared_id_column]] == selected_id, ]
 
-    if (nrow(point_to_highlight) > 0) {
-      point_to_highlight <- point_to_highlight[1, ]
+    if (nrow(selected_data) > 0) {
+      selected_data <- selected_data[1, ]
 
-      # Add highlight marker and fly to location
-      map_proxy %>%
-        leaflet::addAwesomeMarkers(
-          data = point_to_highlight,
-          lng = ~ get(component_info$config$lng_col),
-          lat = ~ get(component_info$config$lat_col),
-          layerId = paste0("highlight_", selected_id),
-          icon = component_info$config$highlight_icon,
-          group = highlight_group_name,
-          popup = ~ paste0("Selected: ", htmltools::htmlEscape(as.character(get(component_info$shared_id_column))))
-        ) %>%
-        leaflet::flyTo(
-          lng = point_to_highlight[[component_info$config$lng_col]],
-          lat = point_to_highlight[[component_info$config$lat_col]],
-          zoom = component_info$config$highlight_zoom
-        )
+      # Use user's custom click handler if provided
+      if (!is.null(component_info$config$click_handler) && is.function(component_info$config$click_handler)) {
+        # Call the user's custom handler - this should do EXACTLY what their direct clicks do
+        component_info$config$click_handler(map_proxy, selected_data, session)
+      } else {
+        # Default behavior if no custom handler provided
+        # Clear previous highlights
+        highlight_group_name <- paste0("highlight_", component_id)
+        map_proxy %>% leaflet::clearGroup(group = highlight_group_name)
+
+        # Add highlight marker and fly to location (default behavior)
+        map_proxy %>%
+          leaflet::addAwesomeMarkers(
+            data = selected_data,
+            lng = ~ get(component_info$config$lng_col),
+            lat = ~ get(component_info$config$lat_col),
+            layerId = paste0("highlight_", selected_id),
+            icon = component_info$config$highlight_icon,
+            group = highlight_group_name,
+            popup = ~ paste0("Selected: ", htmltools::htmlEscape(as.character(get(component_info$shared_id_column))))
+          ) %>%
+          leaflet::flyTo(
+            lng = selected_data[[component_info$config$lng_col]],
+            lat = selected_data[[component_info$config$lat_col]],
+            zoom = component_info$config$highlight_zoom
+          )
+      }
+    }
+  } else {
+    # Handle deselection
+    if (!is.null(component_info$config$click_handler) && is.function(component_info$config$click_handler)) {
+      # Let user's handler deal with deselection
+      component_info$config$click_handler(map_proxy, NULL, session)
+    } else {
+      # Default deselection behavior
+      highlight_group_name <- paste0("highlight_", component_id)
+      map_proxy %>% leaflet::clearGroup(group = highlight_group_name)
     }
   }
 }

@@ -24,10 +24,7 @@ register_dt <- function(registry, dt_output_id, data_reactive, shared_id_column)
 }
 
 # Implementation of DT-specific observers (internal function)
-setup_datatable_observers <- function(component_id, session, components, shared_state) {
-  # Access the parent environment to get the registry components and shared_state
-  registry_env <- parent.frame()
-
+setup_datatable_observers <- function(component_id, session, components, shared_state, on_selection_change) {
   # Observer for table row selections
   observer1 <- shiny::observeEvent(session$input[[paste0(component_id, "_rows_selected")]],
     {
@@ -40,6 +37,8 @@ setup_datatable_observers <- function(component_id, session, components, shared_
 
         # Get the selected ID (use first selection if multiple)
         selected_id <- current_data[[component_info$shared_id_column]][selected_rows[1]]
+        selected_data <- current_data[selected_rows[1], ]
+
         # Update shared state
         shared_state$selected_id <- selected_id
         shared_state$selection_source <- component_id
@@ -61,6 +60,25 @@ setup_datatable_observers <- function(component_id, session, components, shared_
         shared_state$selection_source != component_id) {
         selected_id <- shared_state$selected_id
         update_dt_selection(component_id, selected_id, session, components)
+
+        if (!is.null(on_selection_change) && is.function(on_selection_change)) {
+          # Get selected data
+          selected_data <- NULL
+          if (!is.null(selected_id)) {
+            component_info <- components[[component_id]]
+            current_data <- component_info$data_reactive()
+            match_row <- current_data[current_data[[component_info$shared_id_column]] == selected_id, ]
+            if (nrow(match_row) > 0) {
+              selected_data <- match_row[1, ]
+            }
+          }
+
+          tryCatch({
+            on_selection_change(selected_id, selected_data, shared_state$selection_source, session)
+          }, error = function(e) {
+            warning("Error in on_selection_change callback: ", e$message)
+          })
+        }
       }
     },
     ignoreNULL = FALSE,
@@ -70,7 +88,7 @@ setup_datatable_observers <- function(component_id, session, components, shared_
   return(list(observer1, observer2))
 }
 
-# Internal function to update DT selection
+# Update the DT selection function to use user's click handler
 update_dt_selection <- function(component_id, selected_id, session, components) {
   if (!requireNamespace("DT", quietly = TRUE)) {
     return()
@@ -96,11 +114,25 @@ update_dt_selection <- function(component_id, selected_id, session, components) 
     row_idx <- which(current_data[[component_info$shared_id_column]] == selected_id)
 
     if (length(row_idx) > 0) {
-      # Select the matching row
-      DT::selectRows(dt_proxy, selected = row_idx[1])
+      selected_data <- current_data[row_idx[1], ]
+
+      # Use user's custom click handler if provided
+      if (!is.null(component_info$config$click_handler) && is.function(component_info$config$click_handler)) {
+        # Call the user's custom handler
+        component_info$config$click_handler(dt_proxy, selected_data, session)
+      } else {
+        # Default behavior: just select the row
+        DT::selectRows(dt_proxy, selected = row_idx[1])
+      }
     }
   } else {
-    # Clear selection
-    DT::selectRows(dt_proxy, selected = integer(0))
+    # Handle deselection
+    if (!is.null(component_info$config$click_handler) && is.function(component_info$config$click_handler)) {
+      # Let user's handler deal with deselection
+      component_info$config$click_handler(dt_proxy, NULL, session)
+    } else {
+      # Default deselection behavior
+      DT::selectRows(dt_proxy, selected = integer(0))
+    }
   }
 }

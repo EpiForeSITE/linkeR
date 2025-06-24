@@ -9,7 +9,10 @@ link_plots(
   ...,
   shared_id_column,
   leaflet_lng_col = "longitude",
-  leaflet_lat_col = "latitude"
+  leaflet_lat_col = "latitude",
+  leaflet_click_handler = NULL,
+  dt_click_handler = NULL,
+  on_selection_change = NULL
 )
 }
 \arguments{
@@ -26,6 +29,17 @@ Defaults to "longitude".}
 
 \item{leaflet_lat_col}{Character string naming the latitude column for leaflet maps.
 Defaults to "latitude".}
+
+\item{leaflet_click_handler}{Optional function that handles leaflet marker clicks.
+This will be used for both direct clicks and when other components select this marker.
+Function should accept (map_proxy, selected_data, session).}
+
+\item{dt_click_handler}{Optional function that handles DT row selections.
+This will be used for both direct clicks and when other components select this row.
+Function should accept (dt_proxy, selected_data, session).}
+
+\item{on_selection_change}{Optional callback function that gets called when selection changes.
+Function should accept parameters: (selected_id, selected_data, source_component_id, session)}
 }
 \value{
 Invisibly returns the created registry object
@@ -36,16 +50,30 @@ This function automatically detects component types and sets up bidirectional li
 }
 \examples{
 \dontrun{
-# In your Shiny server function
+# Basic usage with default behaviors
 link_plots(
   session,
-  myMap = reactive({
-    map_data
-  }),
-  myTable = reactive({
-    table_data
-  }),
+  myMap = reactive({ map_data }),
+  myTable = reactive({ table_data }),
   shared_id_column = "location_id"
+)
+
+# With custom leaflet click behavior
+link_plots(
+  session,
+  myMap = reactive({ map_data }),
+  myTable = reactive({ table_data }),
+  shared_id_column = "location_id",
+  leaflet_click_handler = function(map_proxy, selected_data, session) {
+    # Custom popup and zoom behavior
+    map_proxy \%>\%
+      leaflet::setView(lng = selected_data$longitude, lat = selected_data$latitude, zoom = 15) \%>\%
+      leaflet::addPopups(
+        lng = selected_data$longitude, 
+        lat = selected_data$latitude,
+        popup = paste0("<b>", selected_data$name, "</b><br>Custom info here")
+      )
+  }
 )
 }
 }

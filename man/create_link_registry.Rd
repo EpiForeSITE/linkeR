@@ -4,20 +4,17 @@
 \alias{create_link_registry}
 \title{Create a Link Registry}
 \usage{
-create_link_registry(session)
+create_link_registry(session, on_selection_change = NULL)
 }
 \arguments{
 \item{session}{The Shiny session object}
+
+\item{on_selection_change}{Optional callback function that gets called when selection changes.
+Function should accept parameters: (selected_id, selected_data, source_component_id, session)}
 }
 \value{
 A registry object with methods for managing component links
 }
 \description{
 Creates a registry to manage links between interactive components in Shiny.
-}
-\examples{
-\dontrun{
-# In your Shiny server function
-registry <- create_link_registry(session)
-}
 }
