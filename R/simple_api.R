@@ -81,6 +81,14 @@ link_plots <- function(session, ..., shared_id_column,
     # Detect component type
     comp_type <- detect_component_type(comp_name, comp_data)
 
+    # validate that component has shared_id_column
+    if (!shared_id_column %in% names(isolate(comp_data()))) {
+      stop(
+        "Component '", comp_name, "' data must contain the shared_id_column: ",
+        shared_id_column
+      )
+    }
+
     # Configure component-specific settings
     config <- list()
     if (comp_type == "leaflet") {

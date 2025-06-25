@@ -112,6 +112,11 @@ create_link_registry <- function(session, on_selection_change = NULL) {
       )
     },
 
+    # Get on_selection_change callback
+    get_on_selection_change = function() {
+      on_selection_change
+    },
+
     # Get registry information (for debugging)
     get_components = function() {
       # Return a simplified version to avoid environment issues
