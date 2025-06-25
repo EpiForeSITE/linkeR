@@ -17,7 +17,7 @@ knitr::opts_chunk$set(
 # linkeR: Effortless Linked Views for Shiny Applications
 
 <!-- badges: start -->
-[![R-CMD-check](https://github.com/JakeWags/linkeR/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/JakeWags/linkeR/actions/workflows/R-CMD-check.yaml)
+[![R-CMD-check](https://github.com/JakeWags/linkeR/actions/workflows/R-CMD-check.yaml/badge.svg?cache=bust)](https://github.com/JakeWags/linkeR/actions/workflows/R-CMD-check.yaml)
 [![Codecov test coverage](https://codecov.io/gh/JakeWags/linkeR/graph/badge.svg)](https://app.codecov.io/gh/JakeWags/linkeR)
 [![CRAN status](https://www.r-pkg.org/badges/version/linkeR)](https://CRAN.R-project.org/package=linkeR)
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
