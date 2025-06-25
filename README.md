@@ -50,7 +50,7 @@ observeEvent(input$map_marker_click, {
   # Update map view
   leafletProxy("my_map") %>% setView(...)
   # Update any other components...
-  # Repeat this for every component combination! 😵
+  # Repeat this for every component combination!
 })
 
 observeEvent(input$my_table_rows_selected, {
