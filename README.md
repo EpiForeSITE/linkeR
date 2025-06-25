@@ -1,9 +1,169 @@
-# linkeR: Linked View Interactions in R Shiny Applications
-  <!-- badges: start -->
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+# linkeR: Effortless Linked Views for Shiny Applications
+
+<!-- badges: start -->
+
 [![R-CMD-check](https://github.com/JakeWags/linkeR/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/JakeWags/linkeR/actions/workflows/R-CMD-check.yaml)
-[![Codecov test coverage](https://codecov.io/gh/JakeWags/linkeR/graph/badge.svg)](https://app.codecov.io/gh/JakeWags/linkeR)
-  <!-- badges: end -->
+[![Codecov test
+coverage](https://codecov.io/gh/JakeWags/linkeR/graph/badge.svg)](https://app.codecov.io/gh/JakeWags/linkeR)
+[![CRAN
+status](https://www.r-pkg.org/badges/version/linkeR)](https://CRAN.R-project.org/package=linkeR)
+[![Lifecycle:
+experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+<!-- badges: end -->
 
-linkeR is an R package designed to make creating linked-views simple.
+> **Create synchronized, interactive dashboards where one click updates
+> multiple components**
 
-Currently linkeR supports Leaflet and DT, but more support is planned.
+`linkeR` makes it effortless to create linked views in Shiny
+applications. When users interact with one component (like clicking a
+map marker), all related components (tables, charts, other maps)
+automatically update to show corresponding information.
+
+## ✨ What linkeR Does
+
+- **🔗 Bidirectional Linking**: Click a map marker → table row
+  highlights. Click table row → map zooms and shows popup.
+- **🎯 One-Line Setup**: Link multiple components with a single function
+  call
+- **🎨 Custom Behaviors**: Define exactly what happens when users click
+  different components
+- **📊 Multi-Component Support**: Link maps, tables, charts, and more in
+  complex dashboards
+- **⚡ Zero Boilerplate**: No manual observer setup or event handling
+  required
+
+## 🚀 Why Use linkeR?
+
+### Before linkeR (Manual Approach)
+
+``` r
+# 😰 Complex manual setup for each component pair
+observeEvent(input$map_marker_click, {
+  clicked_id <- input$map_marker_click$id
+  # Find corresponding table row
+  row_idx <- which(my_data()$id == clicked_id)
+  # Update table selection
+  dataTableProxy("my_table") %>% selectRows(row_idx)
+  # Update map view
+  leafletProxy("my_map") %>% setView(...)
+  # Update any other components...
+  # Repeat this for every component combination! 😵
+})
+
+observeEvent(input$my_table_rows_selected, {
+  # More boilerplate code...
+  # Handle edge cases...
+  # Ensure consistency...
+})
+```
+
+### With linkeR (Simple Approach)
+
+``` r
+# 🎉 One line links everything!
+link_plots(
+  session,
+  my_map = my_data,
+  my_table = my_data,
+  shared_id_column = "id"
+)
+```
+
+### Key Benefits
+
+| Manual Approach            | linkeR Approach            |
+|----------------------------|----------------------------|
+| 50+ lines of observer code | 1 function call            |
+| Easy to introduce bugs     | Tested and reliable        |
+| Hard to maintain           | Declarative and clear      |
+| Limited to 2 components    | Unlimited components       |
+| No built-in customization  | Rich customization options |
+
+## 📦 Installation
+
+``` r
+# Install from CRAN (when available)
+install.packages("linkeR")
+
+# Or install development version from GitHub
+# install.packages("devtools")
+devtools::install_github("JakeWags/linkeR")
+```
+
+## 📋 Requirements
+
+For linking to work, your setup needs:
+
+1.  **✅ Shared ID Column**: All datasets must have a common identifier
+    column
+2.  **✅ Matching Component IDs**:
+    - Leaflet: Use `layerId = ~your_id_column`
+    - DT: Row numbers automatically map to data rows
+3.  **✅ Reactive Data**: Wrap your data in `reactive()`
+
+``` r
+# ✅ Good: Proper setup
+my_data <- reactive({
+  data.frame(
+    id = 1:10,           # ← Shared ID column
+    name = paste("Item", 1:10),
+    lat = runif(10), lng = runif(10)
+  )
+})
+
+output$my_map <- renderLeaflet({
+  leaflet(my_data()) %>%
+    addMarkers(layerId = ~id)  # ← layerId matches shared_id_column
+})
+
+link_plots(session, my_map = my_data, shared_id_column = "id")
+
+# ❌ Bad: Missing layerId
+output$my_map <- renderLeaflet({
+  leaflet(my_data()) %>%
+    addMarkers()  # ← No layerId = no linking!
+})
+```
+
+## 🎯 Supported Components
+
+| Component | Status | Notes |
+|----|----|----|
+| 📍 Leaflet Maps | ✅ Full Support | Interactive maps with markers, circles, polygons |
+| 📊 DT DataTables | ✅ Full Support | Sortable, filterable tables |
+| 📈 Plotly Charts | 🔄 Partial | Requires manual event handling |
+| 🧷 Custom Components | 🔄 Partial | Any Shiny component with click events, Requires manual event handling |
+| 📉 Base R Plots | 📋 Planned | Static plots with click detection |
+| 🗺️ Mapbox | 📋 Planned | Alternative mapping solution |
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing
+Guide](CONTRIBUTING.md) for details.
+
+### Development Setup
+
+``` r
+# Clone and setup
+git clone https://github.com/JakeWags/linkeR.git
+cd linkeR
+
+# Install dependencies
+devtools::install_deps()
+
+# Run tests
+devtools::test()
+
+# Check package
+devtools::check()
+```
+
+## 📝 License
+
+This project is licensed under the MIT License - see the
+[LICENSE](LICENSE) file for details.
+
+------------------------------------------------------------------------
