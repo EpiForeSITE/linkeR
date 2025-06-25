@@ -22,7 +22,7 @@ applications. When users interact with one component (like clicking a
 map marker), all related components (tables, charts, other maps)
 automatically update to show corresponding information.
 
-## ✨ What linkeR Does
+## What linkeR Does
 
 - **🔗 Bidirectional Linking**: Click a map marker → table row
   highlights. Click table row → map zooms and shows popup.
@@ -35,7 +35,7 @@ automatically update to show corresponding information.
 - **⚡ Zero Boilerplate**: No manual observer setup or event handling
   required
 
-## 🚀 Why Use linkeR?
+## Why Use linkeR?
 
 ### Before linkeR (Manual Approach)
 
@@ -82,7 +82,7 @@ link_plots(
 | Limited to 2 components    | Unlimited components       |
 | No built-in customization  | Rich customization options |
 
-## 📦 Installation
+## Installation
 
 ``` r
 # Install from CRAN (when available)
@@ -93,7 +93,7 @@ install.packages("linkeR")
 devtools::install_github("JakeWags/linkeR")
 ```
 
-## 📋 Requirements
+## Requirements
 
 For linking to work, your setup needs:
 
@@ -128,7 +128,7 @@ output$my_map <- renderLeaflet({
 })
 ```
 
-## 🎯 Supported Components
+## Supported Components
 
 | Component | Status | Notes |
 |----|----|----|
@@ -139,10 +139,10 @@ output$my_map <- renderLeaflet({
 | 📉 Base R Plots | 📋 Planned | Static plots with click detection |
 | 🗺️ Mapbox | 📋 Planned | Alternative mapping solution |
 
-## 🤝 Contributing
+## Contributing
 
-We welcome contributions! Please see our [Contributing
-Guide](CONTRIBUTING.md) for details.
+Contributions are welcome and encouraged! Follow best practice for
+github contributions.
 
 ### Development Setup
 

@@ -27,7 +27,7 @@ knitr::opts_chunk$set(
 
 `linkeR` makes it effortless to create linked views in Shiny applications. When users interact with one component (like clicking a map marker), all related components (tables, charts, other maps) automatically update to show corresponding information.
 
-## ✨ What linkeR Does
+## What linkeR Does
 
 - **🔗 Bidirectional Linking**: Click a map marker → table row highlights. Click table row → map zooms and shows popup.
 - **🎯 One-Line Setup**: Link multiple components with a single function call
@@ -35,7 +35,7 @@ knitr::opts_chunk$set(
 - **📊 Multi-Component Support**: Link maps, tables, charts, and more in complex dashboards
 - **⚡ Zero Boilerplate**: No manual observer setup or event handling required
 
-## 🚀 Why Use linkeR?
+## Why Use linkeR?
 
 ### Before linkeR (Manual Approach)
 ```{r before-linker}
@@ -80,7 +80,7 @@ link_plots(
 | Limited to 2 components | Unlimited components |
 | No built-in customization | Rich customization options |
 
-## 📦 Installation
+## Installation
 
 ```{r installation}
 # Install from CRAN (when available)
@@ -91,7 +91,7 @@ install.packages("linkeR")
 devtools::install_github("JakeWags/linkeR")
 ```
 
-## 📋 Requirements
+## Requirements
 
 For linking to work, your setup needs:
 
@@ -125,7 +125,7 @@ output$my_map <- renderLeaflet({
 })
 ```
 
-## 🎯 Supported Components
+## Supported Components
 
 | Component | Status | Notes |
 |-----------|--------|--------|
@@ -136,9 +136,9 @@ output$my_map <- renderLeaflet({
 | 📉 Base R Plots | 📋 Planned | Static plots with click detection |
 | 🗺️ Mapbox | 📋 Planned | Alternative mapping solution |
 
-## 🤝 Contributing
+## Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+Contributions are welcome and encouraged! Follow best practice for github contributions.
 
 ### Development Setup
 ```{r development}
