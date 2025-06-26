@@ -237,13 +237,13 @@ test_that("selection state management works", {
   expect_null(selection$source)
 
   # Test setting selection
-  registry$set_selection("test_id", "test_source")
+  isolate(registry$set_selection("test_id", "test_source"))
   selection <- isolate(registry$get_selection())
   expect_equal(selection$selected_id, "test_id")
   expect_equal(selection$source, "test_source")
 
   # Test clearing selection
-  registry$set_selection(NULL, "test_source")
+  isolate(registry$set_selection(NULL, "test_source"))
   selection <- isolate(registry$get_selection())
   expect_null(selection$selected_id)
   expect_equal(selection$source, "test_source")  # Source should remain
@@ -262,7 +262,7 @@ test_that("registry cleanup works", {
   register_dt(registry, "table1", data1, "id")
 
   # Set selection
-  registry$set_selection("test_id", "test_source")
+  isolate(registry$set_selection("test_id", "test_source"))
 
   # Clear all
   registry$clear_all()
