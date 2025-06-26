@@ -16,7 +16,7 @@ create_link_registry <- function(session, on_selection_change = NULL) {
   # Private registry state
   components <- list()
   shared_state <- shiny::reactiveValues()
-  observers <- list()  # Store observers to prevent garbage collection
+  observers <- list() # Store observers to prevent garbage collection
 
   # Registry methods
   registry <- list(
@@ -53,7 +53,8 @@ create_link_registry <- function(session, on_selection_change = NULL) {
 
       # Set up component-specific observers and store them
       observers[[component_id]] <<- setup_component_observers(
-        component_id, type, session, components, shared_state, on_selection_change
+        component_id, type, session, components, shared_state, on_selection_change,
+        registry = list(set_selection = registry$set_selection)
       )
 
       invisible(TRUE)
@@ -77,6 +78,12 @@ create_link_registry <- function(session, on_selection_change = NULL) {
 
     # Update selection programmatically
     set_selection = function(selected_id, source_component_id = "programmatic") {
+      # Only proceed if selection actually changed
+      if (identical(shared_state$selected_id, selected_id) &&
+        identical(shared_state$selection_source, source_component_id)) {
+        return(invisible(NULL)) # No change, exit early
+      }
+
       shared_state$selected_id <- selected_id
       shared_state$selection_source <- source_component_id
 
@@ -96,11 +103,14 @@ create_link_registry <- function(session, on_selection_change = NULL) {
           }
         }
 
-        tryCatch({
-          on_selection_change(selected_id, selected_data, source_component_id, session)
-        }, error = function(e) {
-          warning("Error in on_selection_change callback: ", e$message)
-        })
+        tryCatch(
+          {
+            on_selection_change(selected_id, selected_data, source_component_id, session)
+          },
+          error = function(e) {
+            warning("Error in on_selection_change callback: ", e$message)
+          }
+        )
       }
     },
 
@@ -132,14 +142,17 @@ create_link_registry <- function(session, on_selection_change = NULL) {
 
     # Get shared state (for debugging)
     get_shared_state = function() {
-      tryCatch({
-        list(
-          selected_id = shared_state$selected_id,
-          selection_source = shared_state$selection_source
-        )
-      }, error = function(e) {
-        list(selected_id = NULL, selection_source = NULL)
-      })
+      tryCatch(
+        {
+          list(
+            selected_id = shared_state$selected_id,
+            selection_source = shared_state$selection_source
+          )
+        },
+        error = function(e) {
+          list(selected_id = NULL, selection_source = NULL)
+        }
+      )
     }
   )
 
@@ -147,10 +160,10 @@ create_link_registry <- function(session, on_selection_change = NULL) {
 }
 
 # Internal function to set up observers for each component type
-setup_component_observers <- function(component_id, type, session, components, shared_state, on_selection_change) {
+setup_component_observers <- function(component_id, type, session, components, shared_state, on_selection_change, registry = NULL) {
   observers <- switch(type,
-    "leaflet" = setup_leaflet_observers(component_id, session, components, shared_state, on_selection_change),
-    "datatable" = setup_datatable_observers(component_id, session, components, shared_state, on_selection_change),
+    "leaflet" = setup_leaflet_observers(component_id, session, components, shared_state, on_selection_change, registry),
+    "datatable" = setup_datatable_observers(component_id, session, components, shared_state, on_selection_change, registry),
     stop("Unsupported component type: ", type)
   )
 

@@ -24,10 +24,18 @@ register_dt <- function(registry, dt_output_id, data_reactive, shared_id_column)
 }
 
 # Implementation of DT-specific observers (internal function)
-setup_datatable_observers <- function(component_id, session, components, shared_state, on_selection_change) {
-  # Observer for table row selections
+setup_datatable_observers <- function(component_id, session, components, shared_state, on_selection_change, registry = NULL) {
+  # Use session userData to store the flag - this persists across observer calls
+  flag_name <- paste0(component_id, "_updating_selection")
+
+  # Observer for table row selections (USER CLICKS ONLY)
   observer1 <- shiny::observeEvent(session$input[[paste0(component_id, "_rows_selected")]],
     {
+      # Check session-level flag
+      if (isTRUE(session$userData[[flag_name]])) {
+        return()
+      }
+
       selected_rows <- session$input[[paste0(component_id, "_rows_selected")]]
 
       if (length(selected_rows) > 0) {
@@ -37,48 +45,46 @@ setup_datatable_observers <- function(component_id, session, components, shared_
 
         # Get the selected ID (use first selection if multiple)
         selected_id <- current_data[[component_info$shared_id_column]][selected_rows[1]]
-        selected_data <- current_data[selected_rows[1], ]
 
-        # Update shared state
-        shared_state$selected_id <- selected_id
-        shared_state$selection_source <- component_id
+        # THIS IS CORRECT - USER CLICK SHOULD CALL set_selection
+        if (!is.null(registry) && !is.null(registry$set_selection)) {
+          registry$set_selection(selected_id, component_id)
+        } else {
+          shared_state$selected_id <- selected_id
+          shared_state$selection_source <- component_id
+        }
       } else {
         # Clear selection
-        shared_state$selected_id <- NULL
-        shared_state$selection_source <- component_id
+        if (!is.null(registry) && !is.null(registry$set_selection)) {
+          registry$set_selection(NULL, component_id)
+        } else {
+          shared_state$selected_id <- NULL
+          shared_state$selection_source <- component_id
+        }
       }
     },
     ignoreNULL = FALSE,
     ignoreInit = TRUE
   )
 
-  # Observer for responding to selections from other components
+  # Observer for responding to selections from other components (VISUAL UPDATES ONLY)
   observer2 <- shiny::observeEvent(shared_state$selected_id,
     {
       # Only respond if selection came from a different component
       if (!is.null(shared_state$selection_source) &&
         shared_state$selection_source != component_id) {
         selected_id <- shared_state$selected_id
+
+        # Set session-level flag to prevent recursive calls
+        session$userData[[flag_name]] <- TRUE
+
+        # THIS SHOULD ONLY UPDATE VISUAL STATE - NO set_selection CALLS!
         update_dt_selection(component_id, selected_id, session, components)
 
-        if (!is.null(on_selection_change) && is.function(on_selection_change)) {
-          # Get selected data
-          selected_data <- NULL
-          if (!is.null(selected_id)) {
-            component_info <- components[[component_id]]
-            current_data <- component_info$data_reactive()
-            match_row <- current_data[current_data[[component_info$shared_id_column]] == selected_id, ]
-            if (nrow(match_row) > 0) {
-              selected_data <- match_row[1, ]
-            }
-          }
-
-          tryCatch({
-            on_selection_change(selected_id, selected_data, shared_state$selection_source, session)
-          }, error = function(e) {
-            warning("Error in on_selection_change callback: ", e$message)
-          })
-        }
+        # Reset flag after a short delay to allow DT event to be processed and ignored
+        later::later(function() {
+          session$userData[[flag_name]] <- FALSE
+        }, delay = 0.1) # 100ms delay
       }
     },
     ignoreNULL = FALSE,
@@ -88,7 +94,7 @@ setup_datatable_observers <- function(component_id, session, components, shared_
   return(list(observer1, observer2))
 }
 
-# Update DT selection based on shared state
+# Simplify update_dt_selection back to basic version:
 update_dt_selection <- function(component_id, selected_id, session, components) {
   if (!requireNamespace("DT", quietly = TRUE)) {
     return()
@@ -99,10 +105,7 @@ update_dt_selection <- function(component_id, selected_id, session, components) 
 
   # Validate shared ID column exists
   if (!component_info$shared_id_column %in% names(current_data)) {
-    warning(
-      "Shared ID column '", component_info$shared_id_column,
-      "' not found in DT data for component: ", component_id
-    )
+    warning("Shared ID column '", component_info$shared_id_column, "' not found in DT data for component: ", component_id)
     return()
   }
 
@@ -118,17 +121,16 @@ update_dt_selection <- function(component_id, selected_id, session, components) 
 
       # Use user's custom click handler if provided
       if (!is.null(component_info$config$click_handler) && is.function(component_info$config$click_handler)) {
-        # Call the user's custom handler
         component_info$config$click_handler(dt_proxy, selected_data, session)
       } else {
         # Default behavior: just select the row
+        # The flag in the observer should prevent the event from being processed
         DT::selectRows(dt_proxy, selected = row_idx[1])
       }
     }
   } else {
     # Handle deselection
     if (!is.null(component_info$config$click_handler) && is.function(component_info$config$click_handler)) {
-      # Let user's handler deal with deselection
       component_info$config$click_handler(dt_proxy, NULL, session)
     } else {
       # Default deselection behavior

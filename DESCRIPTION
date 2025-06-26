@@ -14,7 +14,8 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
 Imports:
     shiny,
-    magrittr
+    magrittr,
+    later
 Suggests:
     leaflet,
     DT,

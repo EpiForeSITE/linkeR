@@ -41,7 +41,7 @@ register_leaflet <- function(registry, leaflet_output_id, data_reactive,
   )
 }
 
-setup_leaflet_observers <- function(component_id, session, components, shared_state, on_selection_change) {
+setup_leaflet_observers <- function(component_id, session, components, shared_state, on_selection_change, registry = NULL) {
   # Observer for map marker clicks
   observer1 <- shiny::observeEvent(session$input[[paste0(component_id, "_marker_click")]],
     {
@@ -54,7 +54,7 @@ setup_leaflet_observers <- function(component_id, session, components, shared_st
       component_info <- components[[component_id]]
       current_data <- component_info$data_reactive()
       selected_data <- current_data[current_data[[component_info$shared_id_column]] == clicked_marker_id, ]
-      selected_data <- if(nrow(selected_data) > 0) selected_data[1, ] else NULL
+      selected_data <- if (nrow(selected_data) > 0) selected_data[1, ] else NULL
 
       # Get map proxy and clear any existing popups
       map_proxy <- leaflet::leafletProxy(component_id, session = session)
@@ -69,9 +69,13 @@ setup_leaflet_observers <- function(component_id, session, components, shared_st
         apply_default_leaflet_behavior(map_proxy, selected_data, component_info)
       }
 
-      # Update shared state (this will trigger other components)
-      shared_state$selected_id <- clicked_marker_id
-      shared_state$selection_source <- component_id
+      if (!is.null(registry) && !is.null(registry$set_selection)) {
+        registry$set_selection(clicked_marker_id, component_id)
+      } else {
+        # Fallback to direct update if registry not available, this won't trigger selection callback functions
+        shared_state$selected_id <- clicked_marker_id
+        shared_state$selection_source <- component_id
+      }
     },
     ignoreNULL = TRUE,
     ignoreInit = TRUE
@@ -87,25 +91,6 @@ setup_leaflet_observers <- function(component_id, session, components, shared_st
 
         # For linked selections, use the update function
         update_leaflet_selection(component_id, selected_id, session, components)
-
-        if (!is.null(on_selection_change) && is.function(on_selection_change)) {
-          # Get selected data
-          selected_data <- NULL
-          if (!is.null(selected_id)) {
-            component_info <- components[[component_id]]
-            current_data <- component_info$data_reactive()
-            match_row <- current_data[current_data[[component_info$shared_id_column]] == selected_id, ]
-            if (nrow(match_row) > 0) {
-              selected_data <- match_row[1, ]
-            }
-          }
-
-          tryCatch({
-            on_selection_change(selected_id, selected_data, shared_state$selection_source, session)
-          }, error = function(e) {
-            warning("Error in on_selection_change callback: ", e$message)
-          })
-        }
       }
     },
     ignoreNULL = FALSE,
@@ -172,7 +157,7 @@ update_leaflet_selection <- function(component_id, selected_id, session, compone
   if (!is.null(selected_id)) {
     # Find the selected data
     selected_data <- current_data[current_data[[component_info$shared_id_column]] == selected_id, ]
-    selected_data <- if(nrow(selected_data) > 0) selected_data[1, ] else NULL
+    selected_data <- if (nrow(selected_data) > 0) selected_data[1, ] else NULL
 
     # Use user's custom click handler if provided
     if (!is.null(component_info$config$click_handler) && is.function(component_info$config$click_handler)) {

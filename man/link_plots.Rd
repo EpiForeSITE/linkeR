@@ -53,23 +53,31 @@ This function automatically detects component types and sets up bidirectional li
 # Basic usage with default behaviors
 link_plots(
   session,
-  myMap = reactive({ map_data }),
-  myTable = reactive({ table_data }),
+  myMap = reactive({
+    map_data
+  }),
+  myTable = reactive({
+    table_data
+  }),
   shared_id_column = "location_id"
 )
 
 # With custom leaflet click behavior
 link_plots(
   session,
-  myMap = reactive({ map_data }),
-  myTable = reactive({ table_data }),
+  myMap = reactive({
+    map_data
+  }),
+  myTable = reactive({
+    table_data
+  }),
   shared_id_column = "location_id",
   leaflet_click_handler = function(map_proxy, selected_data, session) {
     # Custom popup and zoom behavior
     map_proxy \%>\%
       leaflet::setView(lng = selected_data$longitude, lat = selected_data$latitude, zoom = 15) \%>\%
       leaflet::addPopups(
-        lng = selected_data$longitude, 
+        lng = selected_data$longitude,
         lat = selected_data$latitude,
         popup = paste0("<b>", selected_data$name, "</b><br>Custom info here")
       )

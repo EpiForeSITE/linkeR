@@ -27,23 +27,31 @@
 #' # Basic usage with default behaviors
 #' link_plots(
 #'   session,
-#'   myMap = reactive({ map_data }),
-#'   myTable = reactive({ table_data }),
+#'   myMap = reactive({
+#'     map_data
+#'   }),
+#'   myTable = reactive({
+#'     table_data
+#'   }),
 #'   shared_id_column = "location_id"
 #' )
 #'
 #' # With custom leaflet click behavior
 #' link_plots(
 #'   session,
-#'   myMap = reactive({ map_data }),
-#'   myTable = reactive({ table_data }),
+#'   myMap = reactive({
+#'     map_data
+#'   }),
+#'   myTable = reactive({
+#'     table_data
+#'   }),
 #'   shared_id_column = "location_id",
 #'   leaflet_click_handler = function(map_proxy, selected_data, session) {
 #'     # Custom popup and zoom behavior
 #'     map_proxy %>%
 #'       leaflet::setView(lng = selected_data$longitude, lat = selected_data$latitude, zoom = 15) %>%
 #'       leaflet::addPopups(
-#'         lng = selected_data$longitude, 
+#'         lng = selected_data$longitude,
 #'         lat = selected_data$latitude,
 #'         popup = paste0("<b>", selected_data$name, "</b><br>Custom info here")
 #'       )
@@ -95,9 +103,9 @@ link_plots <- function(session, ..., shared_id_column,
       config$lng_col <- leaflet_lng_col
       config$lat_col <- leaflet_lat_col
       config$highlight_zoom <- 12
-      config$click_handler <- leaflet_click_handler  # Store user's click handler
+      config$click_handler <- leaflet_click_handler # Store user's click handler
     } else if (comp_type == "datatable") {
-      config$click_handler <- dt_click_handler  # Store user's click handler
+      config$click_handler <- dt_click_handler # Store user's click handler
     }
 
     # Register component
