@@ -81,6 +81,60 @@ test_that("link_plots creates registry with components", {
   expect_true("testTable" %in% names(components))
 })
 
+test_that("link_plots works with 3 components", {
+  session <- list(
+    input = list(),
+    onSessionEnded = function(callback) callback
+  )
+
+  # Create mock reactive data for three components
+  data1 <- reactive({
+    data.frame(id = 1:3, name = c("A", "B", "C"))
+  })
+
+  data2 <- reactive({
+    data.frame(id = 1:3, value = c(10, 20, 30))
+  })
+
+  data3 <- reactive({
+    data.frame(id = 1:3, description = c("Desc A", "Desc B", "Desc C"))
+  })
+
+  # Link three components
+  expect_message(
+    registry <- link_plots(
+      session,
+      table1 = data1,
+      table2 = data2,
+      table3 = data3,
+      shared_id_column = "id"
+    ),
+    "Linked 3 components"
+  )
+
+  # Check registry was created
+  expect_s3_class(registry, "link_registry")
+  components <- registry$get_components()
+  expect_length(components, 3)
+  expect_true("table1" %in% names(components))
+  expect_true("table2" %in% names(components))
+  expect_true("table3" %in% names(components))
+
+  # Check shared_id_column is consistent
+  expect_equal(
+    registry$get_components()[["table1"]]$shared_id_column,
+    registry$get_components()[["table2"]]$shared_id_column
+  )
+  expect_equal(
+    registry$get_components()[["table1"]]$shared_id_column,
+    registry$get_components()[["table3"]]$shared_id_column
+  )
+  expect_equal(
+    registry$get_components()[["table2"]]$shared_id_column,
+    registry$get_components()[["table3"]]$shared_id_column
+  )
+})
+
 test_that("link_plots handles edge cases correctly", {
   session <- list(
     input = list(),

@@ -1,0 +1,44 @@
+linters: linters_with_defaults(
+  # Code style and formatting
+  line_length_linter(120),
+  indentation_linter(indent = 2L),
+  trailing_whitespace_linter(),
+  trailing_blank_lines_linter(),
+  
+  # Spacing and operators
+  infix_spaces_linter(),
+  spaces_inside_linter(),
+  spaces_left_parentheses_linter(),
+  commas_linter(),
+  
+  # Naming conventions
+  object_name_linter(styles = c("snake_case", "camelCase")),
+  function_left_parentheses_linter(),
+  
+  # Code quality
+  cyclocomp_linter(complexity_limit = 15L),
+  function_argument_linter(),
+  unused_import_linter(),
+  
+  # Best practices
+  assignment_linter(),
+  equals_na_linter(),
+  seq_linter(),
+  library_call_linter(),
+  package_hooks_linter(),
+  
+  # Exclude some overly strict linters
+  NULL
+)
+
+# Exclude specific files or directories
+exclusions: list(
+  "tests/testthat.R",
+  "data-raw/",
+  "inst/",
+  "man/",
+  "vignettes/"
+)
+
+# File encoding
+encoding: "UTF-8"
