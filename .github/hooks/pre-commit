@@ -1,0 +1,92 @@
+#!/bin/bash
+
+# Pre-commit hook for R projects
+# This script runs styler and lintr on staged R files
+
+echo "Running pre-commit checks..."
+
+# Get list of staged R files
+staged_files=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(R|r|Rmd|rmd)$')
+
+if [ -z "$staged_files" ]; then
+    echo "No R files staged for commit."
+    exit 0
+fi
+
+echo "Checking R files: $staged_files"
+
+# Create temporary directory for checks
+temp_dir=$(mktemp -d)
+trap "rm -rf $temp_dir" EXIT
+
+# Function to run R command and capture output
+run_r_check() {
+    local cmd="$1"
+    local output_file="$temp_dir/r_output.txt"
+    
+    Rscript -e "$cmd" > "$output_file" 2>&1
+    local exit_code=$?
+    
+    if [ $exit_code -ne 0 ]; then
+        echo "R command failed:"
+        cat "$output_file"
+        return 1
+    fi
+    
+    return 0
+}
+
+# Check if required packages are available
+echo "Checking required packages..."
+if ! run_r_check "stopifnot(requireNamespace('styler', quietly = TRUE), requireNamespace('lintr', quietly = TRUE))"; then
+    echo "Error: Required packages (styler, lintr) not available."
+    echo "Install with: install.packages(c('styler', 'lintr'))"
+    exit 1
+fi
+
+# Format files with styler
+echo "Formatting files with styler..."
+for file in $staged_files; do
+    echo "  Formatting: $file"
+    if ! run_r_check "styler::style_file('$file', strict = TRUE)"; then
+        echo "Error: Failed to format $file"
+        exit 1
+    fi
+done
+
+# Run lintr checks
+echo "Running lintr checks..."
+lint_errors=""
+for file in $staged_files; do
+    echo "  Linting: $file"
+    lint_output="$temp_dir/lint_$file.txt"
+    
+    Rscript -e "
+    lints <- lintr::lint('$file')
+    if (length(lints) > 0) {
+        cat('Lint errors in $file:\n')
+        print(lints)
+        quit(status = 1)
+    }
+    " > "$lint_output" 2>&1
+    
+    if [ $? -ne 0 ]; then
+        lint_errors="$lint_errors\n$(cat $lint_output)"
+    fi
+done
+
+# Check for lint errors
+if [ -n "$lint_errors" ]; then
+    echo -e "\nLint errors found:"
+    echo -e "$lint_errors"
+    echo -e "\nPlease fix the above issues before committing."
+    exit 1
+fi
+
+# Re-stage files that may have been modified by styler
+for file in $staged_files; do
+    git add "$file"
+done
+
+echo "All checks passed!"
+exit 0
