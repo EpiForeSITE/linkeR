@@ -1,4 +1,67 @@
-url: ~
+url: https://jakewags.github.io/linkeR/
 template:
   bootstrap: 5
+  bslib:
+    primary: "#0054AD"
+    border-radius: 0.5rem
+    btn-border-radius: 0.25rem
 
+home:
+  title: "linkeR - Link Interactive Plots and Tables"
+  description: >
+    A simple interface to create bidirectional links between interactive 
+    plots and tables in Shiny applications.
+
+navbar:
+  structure:
+    left: [intro, reference, articles, tutorials, news]
+    right: [search, github]
+
+reference:
+- title: "Main Functions"
+  desc: "Primary functions for linking components"
+  contents:
+  - link_plots
+  - create_link_registry
+
+- title: "Component Registration"
+  desc: "Functions to register specific component types"
+  contents:
+  - register_leaflet
+  - register_dt
+
+- title: "Internal Functions"
+  desc: "Internal functions for advanced users"
+  contents:
+  - setup_component_observers
+  - setup_leaflet_observers
+  - setup_datatable_observers
+  - update_leaflet_selection
+  - update_dt_selection
+  - apply_default_leaflet_behavior
+
+# Exclude imports from documentation
+- title: internal
+  contents:
+  - linkeR-imports
+
+articles:
+- title: "Getting Started"
+  navbar: ~
+  contents:
+  - getting-started
+
+- title: "Advanced Usage"
+  navbar: ~
+  contents:
+  - multiple-components
+
+- title: "Custom Behaviors"
+  navbar: ~
+  contents:
+  - custom-behaviors
+
+news:
+  releases:
+  - text: "Version 0.1.0"
+    href: https://github.com/JakeWags/linkeR/releases/tag/v0.1.0
