@@ -24,15 +24,15 @@ automatically update to show corresponding information.
 
 ## What linkeR Does
 
-- **🔗 Bidirectional Linking**: Click a map marker → table row
-  highlights. Click table row → map zooms and shows popup.
-- **🎯 One-Line Setup**: Link multiple components with a single function
+- **Bidirectional Linking**: Click a map marker → table row highlights.
+  Click table row → map zooms and shows popup.
+- **One-Line Setup**: Link multiple components with a single function
   call
-- **🎨 Custom Behaviors**: Define exactly what happens when users click
+- **Custom Behaviors**: Define exactly what happens when users click
   different components
-- **📊 Multi-Component Support**: Link maps, tables, charts, and more in
+- **Multi-Component Support**: Link maps, tables, charts, and more in
   complex dashboards
-- **⚡ Zero Boilerplate**: No manual observer setup or event handling
+- **Zero Boilerplate**: No manual observer setup or event handling
   required
 
 ## Why Use linkeR?
@@ -40,7 +40,7 @@ automatically update to show corresponding information.
 ### Before linkeR (Manual Approach)
 
 ``` r
-# 😰 Complex manual setup for each component pair
+# Complex manual setup for each component pair
 observeEvent(input$map_marker_click, {
   clicked_id <- input$map_marker_click$id
   # Find corresponding table row
@@ -63,7 +63,7 @@ observeEvent(input$my_table_rows_selected, {
 ### With linkeR (Simple Approach)
 
 ``` r
-# 🎉 One line links everything!
+# One line links everything!
 link_plots(
   session,
   my_map = my_data,
@@ -97,15 +97,15 @@ devtools::install_github("JakeWags/linkeR")
 
 For linking to work, your setup needs:
 
-1.  **✅ Shared ID Column**: All datasets must have a common identifier
+1.  **Shared ID Column**: All datasets must have a common identifier
     column
-2.  **✅ Matching Component IDs**:
+2.  **Matching Component IDs**:
     - Leaflet: Use `layerId = ~your_id_column`
     - DT: Row numbers automatically map to data rows
-3.  **✅ Reactive Data**: Wrap your data in `reactive()`
+3.  **Reactive Data**: Wrap your data in `reactive()`
 
 ``` r
-# ✅ Good: Proper setup
+# Good: Proper setup
 my_data <- reactive({
   data.frame(
     id = 1:10,           # ← Shared ID column
@@ -121,7 +121,7 @@ output$my_map <- renderLeaflet({
 
 link_plots(session, my_map = my_data, shared_id_column = "id")
 
-# ❌ Bad: Missing layerId
+# Bad: Missing layerId
 output$my_map <- renderLeaflet({
   leaflet(my_data()) %>%
     addMarkers()  # ← No layerId = no linking!
@@ -132,12 +132,12 @@ output$my_map <- renderLeaflet({
 
 | Component | Status | Notes |
 |----|----|----|
-| 📍 Leaflet Maps | ✅ Full Support | Interactive maps with markers, circles, polygons |
-| 📊 DT DataTables | ✅ Full Support | Sortable, filterable tables |
-| 📈 Plotly Charts | 🔄 Partial | Requires manual event handling |
-| 🧷 Custom Components | 🔄 Partial | Any Shiny component with click events, Requires manual event handling |
-| 📉 Base R Plots | 📋 Planned | Static plots with click detection |
-| 🗺️ Mapbox | 📋 Planned | Alternative mapping solution |
+| Leaflet Maps | ✅ Full Support | Interactive maps with markers, circles, polygons |
+| DT DataTables | ✅ Full Support | Sortable, filterable tables |
+| Plotly Charts | 🔄 Partial | Requires manual event handling |
+| Custom Components | 🔄 Partial | Any Shiny component with click events, Requires manual event handling |
+| Base R Plots | 📋 Planned | Static plots with click detection |
+| Mapbox | 📋 Planned | Alternative mapping solution |
 
 ## Contributing
 
