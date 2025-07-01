@@ -1,12 +1,61 @@
-#' Create a Link Registry
+#' Create a Link Registry for Shiny Component Coordination
 #'
-#' Creates a registry to manage links between interactive components in Shiny.
+#' Creates a registry system that manages linked interactions between multiple
+#' Shiny components, allowing them to share selection state and coordinate
+#' their behavior.
 #'
-#' @param session The Shiny session object
-#' @param on_selection_change Optional callback function that gets called when selection changes.
-#'   Function should accept parameters: (selected_id, selected_data, source_component_id, session)
-#' @return A registry object with methods for managing component links
-#' @export
+#' @param session A Shiny session object, required for server-side reactivity
+#' @param on_selection_change Optional callback function that gets called when
+#'   selection changes. Should accept parameters: selected_id, selected_data,
+#'   source_component_id, and session
+#'
+#' @return A link_registry object with the following methods:
+#' \describe{
+#'   \item{register_component(component_id, type, data_reactive, shared_id_column, config)}{
+#'     Register a new component with the registry. Parameters:
+#'     \itemize{
+#'       \item component_id: Unique string identifier for the component
+#'       \item type: Component type (e.g., "table", "plot")
+#'       \item data_reactive: Reactive expression returning the component's data
+#'       \item shared_id_column: Name of the column used for linking selections
+#'       \item config: Optional list of component-specific configuration
+#'     }
+#'   }
+#'   \item{clear_all()}{Remove all registered components and reset shared state}
+#'   \item{set_selection(selected_id, source_component_id)}{
+#'     Programmatically update the selection state
+#'   }
+#'   \item{get_selection()}{Get current selection as list with selected_id and source}
+#'   \item{get_on_selection_change()}{Return the on_selection_change callback function}
+#'   \item{get_components()}{Get registry components info (for debugging)}
+#'   \item{get_shared_state()}{Get current shared state (for debugging)}
+#' }
+#'
+#' @details
+#' The registry maintains a shared state across all registered components,
+#' automatically setting up observers to synchronize selections. When a
+#' selection changes in one component, all other registered components
+#' are updated to reflect the same selection.
+#'
+#' Components are automatically cleaned up when re-registered to prevent
+#' memory leaks from orphaned observers.
+#'
+#' @examples
+#' \dontrun{
+#' # In your Shiny server function
+#' registry <- create_link_registry(
+#'   session = session,
+#'   on_selection_change = function(id, data, source, session) {
+#'     message("Selection changed to ID: ", id, " from: ", source)
+#'   }
+#' )
+#'
+#' # Register components
+#' registry$register_component("table1", "table", reactive(my_data), "id")
+#' registry$register_component("plot1", "plot", reactive(my_data), "id")
+#' }
+#'
+#' @seealso \code{\link{setup_component_observers}} for component observer setup
 create_link_registry <- function(session, on_selection_change = NULL) {
   # Validate inputs
   if (missing(session)) {
@@ -25,13 +74,13 @@ create_link_registry <- function(session, on_selection_change = NULL) {
                                   shared_id_column, config = list()) {
       # Validation
       if (!is.character(component_id) || length(component_id) != 1) {
-        stop("component_id must be a single character string")
+        stop("component_id must be a string")
       }
       if (!is.reactive(data_reactive)) {
         stop("data_reactive must be a reactive expression")
       }
       if (!is.character(shared_id_column) || length(shared_id_column) != 1) {
-        stop("shared_id_column must be a single character string")
+        stop("shared_id_column must be a string")
       }
 
       # Destroy existing observers for this component if they exist
@@ -159,6 +208,25 @@ create_link_registry <- function(session, on_selection_change = NULL) {
   structure(registry, class = "link_registry")
 }
 
+#' Set up observers for different component types
+#'
+#' This internal function creates and configures observers for different types of
+#' interactive components based on the specified component type. It acts as a
+#' dispatcher that calls the appropriate setup function for each supported component.
+#'
+#' @param component_id Character string. Unique identifier for the component.
+#' @param type Character string. The type of component to set up observers for.
+#'   Currently supports "leaflet" and "datatable".
+#' @param session Shiny session object. The current Shiny session.
+#' @param components List. Collection of all components in the application.
+#' @param shared_state Reactive values object. Shared state across components.
+#' @param on_selection_change Function. Callback function to execute when
+#'   selection changes occur.
+#' @param registry Optional. Registry object for component management. Default is NULL.
+#'
+#' @return List of observer objects created for the specified component type. Throws Error if an unsupported component type is provided.
+#'
+#' @keywords internal
 # Internal function to set up observers for each component type
 setup_component_observers <- function(component_id, type, session, components, shared_state, on_selection_change, registry = NULL) {
   observers <- switch(type,

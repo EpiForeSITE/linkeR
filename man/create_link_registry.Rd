@@ -2,19 +2,70 @@
 % Please edit documentation in R/registry.R
 \name{create_link_registry}
 \alias{create_link_registry}
-\title{Create a Link Registry}
+\title{Create a Link Registry for Shiny Component Coordination}
 \usage{
 create_link_registry(session, on_selection_change = NULL)
 }
 \arguments{
-\item{session}{The Shiny session object}
+\item{session}{A Shiny session object, required for server-side reactivity}
 
-\item{on_selection_change}{Optional callback function that gets called when selection changes.
-Function should accept parameters: (selected_id, selected_data, source_component_id, session)}
+\item{on_selection_change}{Optional callback function that gets called when
+selection changes. Should accept parameters: selected_id, selected_data,
+source_component_id, and session}
 }
 \value{
-A registry object with methods for managing component links
+A link_registry object with the following methods:
+\describe{
+\item{register_component(component_id, type, data_reactive, shared_id_column, config)}{
+Register a new component with the registry. Parameters:
+\itemize{
+\item component_id: Unique string identifier for the component
+\item type: Component type (e.g., "table", "plot")
+\item data_reactive: Reactive expression returning the component's data
+\item shared_id_column: Name of the column used for linking selections
+\item config: Optional list of component-specific configuration
+}
+}
+\item{clear_all()}{Remove all registered components and reset shared state}
+\item{set_selection(selected_id, source_component_id)}{
+Programmatically update the selection state
+}
+\item{get_selection()}{Get current selection as list with selected_id and source}
+\item{get_on_selection_change()}{Return the on_selection_change callback function}
+\item{get_components()}{Get registry components info (for debugging)}
+\item{get_shared_state()}{Get current shared state (for debugging)}
+}
 }
 \description{
-Creates a registry to manage links between interactive components in Shiny.
+Creates a registry system that manages linked interactions between multiple
+Shiny components, allowing them to share selection state and coordinate
+their behavior.
+}
+\details{
+The registry maintains a shared state across all registered components,
+automatically setting up observers to synchronize selections. When a
+selection changes in one component, all other registered components
+are updated to reflect the same selection.
+
+Components are automatically cleaned up when re-registered to prevent
+memory leaks from orphaned observers.
+}
+\examples{
+\dontrun{
+# In your Shiny server function
+registry <- create_link_registry(
+  session = session,
+  on_selection_change = function(id, data, source, session) {
+    message("Selection changed to ID: ", id, " from: ", source)
+  }
+)
+
+# Register components
+registry$register_component("table1", "table", reactive(my_data), "id")
+registry$register_component("plot1", "plot", reactive(my_data), "id")
+}
+
+}
+\seealso{
+\code{\link{setup_component_observers}} for component observer setup
 }

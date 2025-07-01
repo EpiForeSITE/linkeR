@@ -31,7 +31,7 @@ test_that("register_component validates inputs", {
       shared_id_column = "id",
       component_id = NULL
     ),
-    "component_id must be a single character string"
+    "component_id must be a string"
   )
 
   # Test non-reactive data
