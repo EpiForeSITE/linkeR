@@ -170,16 +170,144 @@ server <- function(input, output, session) {
       )
   })
 
+#   # A reactive value to manually store the shared selection state
+# manual_selection <- reactiveVal(NULL)
+
+# # A flag to prevent infinite loops. We'll set this to TRUE before
+# # programmatically updating a component to prevent its observer from firing.
+# is_updating <- reactiveVal(FALSE)
+
+# # --- Observer 1: Handle clicks on the Leaflet map ---
+# observeEvent(input$wastewater_map_marker_click, {
+#   # If this click was triggered by our own code, do nothing.
+#   if (is_updating()) {
+#     return()
+#   }
+
+#   clicked_id <- input$wastewater_map_marker_click$id
+  
+#   # Update the shared selection state
+#   manual_selection(clicked_id)
+# })
+
+# # --- Observer 2: Handle row selections in the DataTable ---
+# observeEvent(input$wastewater_table_rows_selected, {
+#   # If this selection was triggered by our own code, do nothing.
+#   if (is_updating()) {
+#     return()
+#   }
+
+#   selected_row_index <- input$wastewater_table_rows_selected
+  
+#   if (length(selected_row_index) > 0) {
+#     data <- wastewater_data()
+#     # The 'id' column is what links the components
+#     selected_id <- data$id[selected_row_index]
+    
+#     # Update the shared selection state
+#     manual_selection(selected_id)
+#   } else {
+#     # If deselected, clear the selection
+#     manual_selection(NULL)
+#   }
+# })
+
+# # --- Observer 3: Update the DataTable when the selection changes ---
+# observeEvent(manual_selection(), {
+#   selected_id <- manual_selection()
+  
+#   # Set the flag to TRUE to disable other observers
+#   is_updating(TRUE)
+  
+#   dt_proxy <- DT::dataTableProxy("wastewater_table", session = session)
+  
+#   if (!is.null(selected_id)) {
+#     data <- wastewater_data()
+#     # Find the row index that matches the selected ID
+#     row_to_select <- which(data$id == selected_id)
+    
+#     if (length(row_to_select) > 0) {
+#       DT::selectRows(dt_proxy, selected = row_to_select)
+#     }
+#   } else {
+#     # If the selection is cleared, clear the table selection
+#     DT::selectRows(dt_proxy, selected = integer(0))
+#   }
+  
+#   # IMPORTANT: Reset the flag after a brief delay to allow the UI to update
+#   shiny::isolate({
+#       Sys.sleep(0.1) # A small delay can help prevent race conditions
+#       is_updating(FALSE)
+#   })
+# }, ignoreNULL = FALSE)
+
+
+# # --- Observer 4: Update the Leaflet map when the selection changes ---
+# observeEvent(manual_selection(), {
+#   selected_id <- manual_selection()
+  
+#   # Set the flag to TRUE to disable other observers
+#   is_updating(TRUE)
+  
+#   map_proxy <- leaflet::leafletProxy("wastewater_map", session = session)
+  
+#   if (!is.null(selected_id)) {
+#     data <- wastewater_data()
+#     selected_facility <- data[data$id == selected_id, ]
+
+#     if (nrow(selected_facility) > 0) {
+#         # Custom popup content, just like in your original app
+#         popup_content <- paste0(
+#             "<strong>", selected_facility$facility_name, "</strong><br>",
+#             "City: ", selected_facility$city, "<br>",
+#             "Risk Level: ", selected_facility$risk_level, "<br>",
+#             "COVID Copies/mL: ", format(selected_facility$covid_copies_per_ml, big.mark = ","), "<br>",
+#             "Population Served: ", format(selected_facility$population_served, big.mark = ",")
+#         )
+
+#         # Zoom to the location and add the popup
+#         map_proxy %>%
+#             leaflet::setView(
+#                 lng = selected_facility$longitude,
+#                 lat = selected_facility$latitude,
+#                 zoom = 12
+#             ) %>%
+#             leaflet::clearPopups() %>%
+#             leaflet::addPopups(
+#                 lng = selected_facility$longitude,
+#                 lat = selected_facility$latitude,
+#                 popup = popup_content
+#             )
+#     }
+#   } else {
+#     # If the selection is cleared, clear the popups on the map
+#     map_proxy %>% leaflet::clearPopups()
+#   }
+  
+#   # IMPORTANT: Reset the flag
+#   shiny::isolate({
+#       Sys.sleep(0.1)
+#       is_updating(FALSE)
+#   })
+# }, ignoreNULL = FALSE)
+
+
   # Initialize registry once when the session starts
   observeEvent(session$clientData, {
-    # Set up linking with custom click handlers
+    # registry = NULL
+    # registry <- linkeR::link_plots(
+    #   session,
+    #   wastewater_map = wastewater_data,
+    #   wastewater_table = wastewater_data,
+    #   shared_id_column = "id",
+    #   on_selection_change = NULL
+    # )
     registry <- linkeR::link_plots(
       session,
       wastewater_map = wastewater_data,
       wastewater_table = wastewater_data,
       shared_id_column = "id",
 
-      # Custom leaflet click handler
       leaflet_click_handler = function(map_proxy, selected_data, session) {
         if (!is.null(selected_data)) {
           popup_content <- paste0(
