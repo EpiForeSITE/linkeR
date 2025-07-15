@@ -17,8 +17,8 @@ knitr::opts_chunk$set(
 # linkeR: Effortless Linked Views for Shiny Applications
 
 <!-- badges: start -->
-[![R-CMD-check](https://github.com/JakeWags/linkeR/actions/workflows/R-CMD-check.yaml/badge.svg?cache=bust)](https://github.com/JakeWags/linkeR/actions/workflows/R-CMD-check.yaml)
-[![Codecov test coverage](https://codecov.io/gh/JakeWags/linkeR/graph/badge.svg)](https://app.codecov.io/gh/JakeWags/linkeR)
+[![R-CMD-check](https://github.com/EpiForeSITE/linkeR/actions/workflows/R-CMD-check.yaml/badge.svg?cache=bust)](https://github.com/EpiForeSITE/linkeR/actions/workflows/R-CMD-check.yaml)
+[![Codecov test coverage](https://codecov.io/gh/EpiForeSITE/linkeR/graph/badge.svg)](https://app.codecov.io/gh/EpiForeSITE/linkeR)
 [![CRAN status](https://www.r-pkg.org/badges/version/linkeR)](https://CRAN.R-project.org/package=linkeR)
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
@@ -88,7 +88,7 @@ install.packages("linkeR")
 
 # Or install development version from GitHub
 # install.packages("devtools")
-devtools::install_github("JakeWags/linkeR")
+devtools::install_github("EpiForeSITE/linkeR")
 ```
 
 ## Requirements
@@ -143,7 +143,7 @@ Contributions are welcome and encouraged! Follow best practice for github contri
 ### Development Setup
 ```{r development}
 # Clone and setup
-git clone https://github.com/JakeWags/linkeR.git
+git clone https://github.com/EpiForeSITE/linkeR.git
 cd linkeR
 
 # Install dependencies
