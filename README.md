@@ -5,9 +5,9 @@
 
 <!-- badges: start -->
 
-[![R-CMD-check](https://github.com/JakeWags/linkeR/actions/workflows/R-CMD-check.yaml/badge.svg?cache=bust)](https://github.com/JakeWags/linkeR/actions/workflows/R-CMD-check.yaml)
+[![R-CMD-check](https://github.com/EpiForeSITE/linkeR/actions/workflows/R-CMD-check.yaml/badge.svg?cache=bust)](https://github.com/EpiForeSITE/linkeR/actions/workflows/R-CMD-check.yaml)
 [![Codecov test
-coverage](https://codecov.io/gh/JakeWags/linkeR/graph/badge.svg)](https://app.codecov.io/gh/JakeWags/linkeR)
+coverage](https://codecov.io/gh/EpiForeSITE/linkeR/graph/badge.svg)](https://app.codecov.io/gh/EpiForeSITE/linkeR)
 [![CRAN
 status](https://www.r-pkg.org/badges/version/linkeR)](https://CRAN.R-project.org/package=linkeR)
 [![Lifecycle:
@@ -90,7 +90,7 @@ install.packages("linkeR")
 
 # Or install development version from GitHub
 # install.packages("devtools")
-devtools::install_github("JakeWags/linkeR")
+devtools::install_github("EpiForeSITE/linkeR")
 ```
 
 ## Requirements
@@ -148,7 +148,7 @@ github contributions.
 
 ``` r
 # Clone and setup
-git clone https://github.com/JakeWags/linkeR.git
+git clone https://github.com/EpiForeSITE/linkeR.git
 cd linkeR
 
 # Install dependencies

@@ -1,4 +1,4 @@
-url: https://jakewags.github.io/linkeR/
+url: https://EpiForeSITE.github.io/linkeR/
 template:
   bootstrap: 5
   bslib:
@@ -64,4 +64,4 @@ articles:
 news:
   releases:
   - text: "Version 0.1.0"
-    href: https://github.com/JakeWags/linkeR/releases/tag/v0.1.0
+    href: https://github.com/EpiForeSITE/linkeR/releases/tag/v0.1.0
