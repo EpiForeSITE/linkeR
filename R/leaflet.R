@@ -31,6 +31,12 @@ register_leaflet <- function(registry, leaflet_output_id, data_reactive,
     stop("data_reactive must be a reactive expression returning a data frame")
   }
 
+  # Create a wrapped reactive that handles sf objects
+  processed_data_reactive <- reactive({
+    data <- data_reactive()
+    process_sf_data(data, lng_col, lat_col)
+  })
+
   # Configure leaflet-specific settings
   config <- list(
     lng_col = lng_col,
@@ -41,14 +47,15 @@ register_leaflet <- function(registry, leaflet_output_id, data_reactive,
       library = "glyphicon",
       markerColor = "red",
       iconColor = "#FFFFFF"
-    )
+    ),
+    original_data_reactive = data_reactive  # Keep reference to original for custom handlers
   )
 
-  # Register with the registry
+  # Register with the registry using processed data
   registry$register_component(
     component_id = leaflet_output_id,
     type = "leaflet",
-    data_reactive = data_reactive,
+    data_reactive = processed_data_reactive,
     shared_id_column = shared_id_column,
     config = config
   )
@@ -105,9 +112,11 @@ setup_leaflet_observers <- function(component_id, session, components, shared_st
 
       clicked_marker_id <- clicked_event$id
 
-      # Get the selected data
+      # Get the component info
       component_info <- components[[component_id]]
-      current_data <- component_info$data_reactive()
+      
+      # ALWAYS use the processed data for selection
+      current_data <- component_info$data_reactive()  # This is the processed data
       selected_data <- current_data[current_data[[component_info$shared_id_column]] == clicked_marker_id, ]
       selected_data <- if (nrow(selected_data) > 0) selected_data[1, ] else NULL
 
@@ -115,19 +124,21 @@ setup_leaflet_observers <- function(component_id, session, components, shared_st
       map_proxy <- leaflet::leafletProxy(component_id, session = session)
       map_proxy %>% leaflet::clearPopups()
 
-      # Apply the same behavior as linked clicks for consistency
+      handler_selected_data <- selected_data
+      
+      # Apply click behavior
       if (!is.null(component_info$config$click_handler) && is.function(component_info$config$click_handler)) {
-        # Custom handler
-        component_info$config$click_handler(map_proxy, selected_data, session)
+        # Custom handler gets processed data (with lng/lat columns)
+        component_info$config$click_handler(map_proxy, handler_selected_data, session)
       } else {
-        # Default handler - same as what linked clicks use
+        # Default handler with processed data
         apply_default_leaflet_behavior(map_proxy, selected_data, component_info)
       }
 
       if (!is.null(registry) && !is.null(registry$set_selection)) {
         registry$set_selection(clicked_marker_id, component_id)
       } else {
-        # Fallback to direct update if registry not available, this won't trigger selection callback functions
+        # Fallback to direct update if registry not available
         shared_state$selected_id <- clicked_marker_id
         shared_state$selection_source <- component_id
       }
@@ -136,7 +147,7 @@ setup_leaflet_observers <- function(component_id, session, components, shared_st
     ignoreInit = TRUE
   )
 
-  # Observer for responding to selections from other components
+  # Observer for responding to selections from other components  
   observer2 <- shiny::observeEvent(shared_state$selected_id,
     {
       # Only respond if selection came from a different component
@@ -144,7 +155,7 @@ setup_leaflet_observers <- function(component_id, session, components, shared_st
         shared_state$selection_source != component_id) {
         selected_id <- shared_state$selected_id
 
-        # For linked selections, use the update function
+        # Use the processed data for updates
         update_leaflet_selection(component_id, selected_id, session, components)
       }
     },
@@ -266,19 +277,29 @@ update_leaflet_selection <- function(component_id, selected_id, session, compone
   component_info <- components[[component_id]]
   current_data <- component_info$data_reactive()
 
-  # Validate required columns exist
-  required_cols <- c(
-    component_info$shared_id_column,
-    component_info$config$lng_col,
-    component_info$config$lat_col
-  )
-
-  if (!all(required_cols %in% names(current_data))) {
-    warning(
-      "Required columns missing from leaflet data: ",
-      paste(setdiff(required_cols, names(current_data)), collapse = ", ")
-    )
-    return()
+  # For sf integration: ensure we have processed data with lng/lat columns
+  if (!all(c(component_info$config$lng_col, component_info$config$lat_col) %in% names(current_data))) {
+    # Try to process the data if it's an sf object
+    if (requireNamespace("sf", quietly = TRUE) && inherits(current_data, "sf")) {
+      current_data <- process_sf_data(current_data, component_info$config$lng_col, component_info$config$lat_col)
+    } else {
+      # Validate required columns exist
+      required_cols <- c(
+        component_info$shared_id_column,
+        component_info$config$lng_col,
+        component_info$config$lat_col
+      )
+      
+      missing_cols <- setdiff(required_cols, names(current_data))
+      if (length(missing_cols) > 0) {
+        warning(
+          "Required columns missing from leaflet data: ",
+          paste(missing_cols, collapse = ", "),
+          ". Available columns: ", paste(names(current_data), collapse = ", ")
+        )
+        return()
+      }
+    }
   }
 
   # Get map proxy
@@ -292,10 +313,29 @@ update_leaflet_selection <- function(component_id, selected_id, session, compone
     selected_data <- current_data[current_data[[component_info$shared_id_column]] == selected_id, ]
     selected_data <- if (nrow(selected_data) > 0) selected_data[1, ] else NULL
 
+    # For custom handlers, prepare data appropriately
+    handler_selected_data <- selected_data
+    if (!is.null(component_info$config$click_handler) && 
+        !is.null(component_info$config$original_data_reactive)) {
+      # Get original data for custom handlers that might expect sf structure
+      original_data <- component_info$config$original_data_reactive()
+      if (inherits(original_data, "sf")) {
+        # Add coordinates to original data for handlers
+        coords <- sf::st_coordinates(original_data)
+        original_data$longitude <- coords[, 1]
+        original_data$latitude <- coords[, 2]
+        original_data <- sf::st_drop_geometry(original_data)
+      }
+      handler_row <- original_data[original_data[[component_info$shared_id_column]] == selected_id, ]
+      if (nrow(handler_row) > 0) {
+        handler_selected_data <- handler_row[1, ]
+      }
+    }
+
     # Use user's custom click handler if provided
     if (!is.null(component_info$config$click_handler) && is.function(component_info$config$click_handler)) {
       # Call the user's custom handler
-      component_info$config$click_handler(map_proxy, selected_data, session)
+      component_info$config$click_handler(map_proxy, handler_selected_data, session)
     } else {
       # Use consistent default behavior
       apply_default_leaflet_behavior(map_proxy, selected_data, component_info)
@@ -307,6 +347,91 @@ update_leaflet_selection <- function(component_id, selected_id, session, compone
       component_info$config$click_handler(map_proxy, NULL, session)
     } else {
       # Default deselection (already cleared popups above)
+    }
+  }
+}
+
+#' Process SF Data for Leaflet Integration
+#'
+#' Converts sf spatial objects to regular data frames with explicit longitude
+#' and latitude columns that linkeR expects for leaflet integration.
+#'
+#' @param data Data frame or sf object. If sf object, coordinates will be extracted.
+#' @param lng_col Character string. Name for the longitude column (default: "longitude")
+#' @param lat_col Character string. Name for the latitude column (default: "latitude")
+#'
+#' @return Data frame with explicit lng/lat columns, ready for leaflet integration
+#'
+#' @details
+#' This function handles three scenarios:
+#' \itemize{
+#'   \item SF objects: Extracts coordinates using sf::st_coordinates() and creates lng/lat columns
+#'   \item Regular data frames with existing lng/lat columns: Returns unchanged
+#'   \item Regular data frames without lng/lat columns: Issues warning and returns unchanged
+#' }
+#'
+#' For sf objects, the function:
+#' \itemize{
+#'   \item Extracts point coordinates from the geometry column
+#'   \item Drops the geometry column to create a regular data frame
+#'   \item Adds the coordinates as new columns with the specified names
+#'   \item Handles different coordinate reference systems
+#' }
+#'
+#' @examples
+#' \dontrun{
+#' # Process sf object
+#' sf_data <- sf::st_read("path/to/shapefile.shp")
+#' processed <- process_sf_data(sf_data, "lon", "lat")
+#'
+#' # Regular data frame passes through unchanged
+#' regular_df <- data.frame(id = 1:3, longitude = c(-74, -75, -76), latitude = c(40, 41, 42))
+#' processed <- process_sf_data(regular_df, "longitude", "latitude")
+#' }
+process_sf_data <- function(data, lng_col = "longitude", lat_col = "latitude") {
+  # Check if this is an sf object
+  if (requireNamespace("sf", quietly = TRUE) && inherits(data, "sf")) {
+    # Handle sf objects
+    tryCatch({
+      # Extract coordinates
+      coords <- sf::st_coordinates(data)
+      
+      # Check if we have point geometries (X, Y coordinates)
+      if (ncol(coords) < 2) {
+        warning("SF object does not appear to contain point geometries with X/Y coordinates")
+        return(data)
+      }
+      
+      # Drop geometry and convert to regular data frame
+      data_no_geom <- sf::st_drop_geometry(data)
+      
+      # Add coordinate columns and ensure they are numeric
+      data_no_geom[[lng_col]] <- as.numeric(coords[, 1])  # X = longitude
+      data_no_geom[[lat_col]] <- as.numeric(coords[, 2])   # Y = latitude
+
+      return(data_no_geom)
+      
+    }, error = function(e) {
+      warning("Failed to process sf object: ", e$message, ". Returning original data.")
+      return(data)
+    })
+    
+  } else {
+    # Regular data frame - check if lng/lat columns exist
+    if (lng_col %in% names(data) && lat_col %in% names(data)) {
+      # Already has the required columns - ensure they're numeric
+      data[[lng_col]] <- as.numeric(data[[lng_col]])
+      data[[lat_col]] <- as.numeric(data[[lat_col]])
+      return(data)
+    } else {
+      # Missing required columns
+      missing_cols <- setdiff(c(lng_col, lat_col), names(data))
+      warning(
+        "Data is missing required coordinate columns: ", 
+        paste(missing_cols, collapse = ", "),
+        ". Available columns: ", paste(names(data), collapse = ", ")
+      )
+      return(data)
     }
   }
 }
