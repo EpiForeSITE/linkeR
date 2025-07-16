@@ -240,41 +240,34 @@ server <- function(input, output, session) {
           # Debug: print the structure of selected_data
           cat("Selected data columns:", names(selected_data), "\n")
           
-          # Handle coordinate extraction more robustly
-          longitude <- NULL
-          latitude <- NULL
-          
-          # Check if coordinates are already present (from processed data)
-          if ("longitude" %in% names(selected_data) && "latitude" %in% names(selected_data)) {
-            longitude <- as.numeric(selected_data$longitude)
-            latitude <- as.numeric(selected_data$latitude)
-          } else if ("geometry" %in% names(selected_data)) {
-            # If we still have geometry column, extract coordinates
-            cat("Extracting coordinates from geometry column")
-            tryCatch({
+          if (!("longitude" %in% names(selected_data)) || 
+              !("latitude" %in% names(selected_data))) {
+            cat("Selected data does not have longitude/latitude columns.\n")
+           
+            if (inherits(selected_data, "sf")) {
+              # Extract coordinates from sf object
               coords <- sf::st_coordinates(selected_data)
-              longitude <- as.numeric(coords[1, 1])
-              latitude <- as.numeric(coords[1, 2])
-            }, error = function(e) {
-              cat("Error extracting coordinates:", e$message, "\n")
+              selected_data$longitude <- coords[, 1]
+              selected_data$latitude <- coords[, 2]
+            } else {
+              cat("Selected data is not an sf object and lacks coordinates.\n")
               return()
-            })
-          } else {
-            cat("No coordinate information found in selected_data\n")
-            return()
+            }
           }
+
+          longitude <- as.numeric(selected_data$longitude)
+          latitude <- as.numeric(selected_data$latitude)
           
           # Validate coordinates
-          if (is.null(longitude) || is.null(latitude) || 
-              is.na(longitude) || is.na(latitude)) {
+          if (is.na(longitude) || is.na(latitude)) {
             cat("Invalid coordinates: lng =", longitude, ", lat =", latitude, "\n")
             return()
           }
           
-          # Build popup content safely
+          # Build popup content
           popup_content <- paste0(
             "<strong>", selected_data$facility_name, "</strong><br>",
-            "<em>Data from SF object</em><br>",
+            "<em>Data from SF object (processed by linkeR)</em><br>",
             "City: ", selected_data$city, "<br>",
             "Risk Level: ", selected_data$risk_level, "<br>",
             "COVID Copies/mL: ", format(selected_data$covid_copies_per_ml, big.mark = ","), "<br>",
@@ -282,30 +275,22 @@ server <- function(input, output, session) {
             "Coordinates: ", round(longitude, 4), ", ", round(latitude, 4)
           )
 
-          # Use tryCatch to handle any leaflet proxy errors
-          tryCatch({
-            map_proxy %>%
-              leaflet::setView(
-                lng = longitude, 
-                lat = latitude, 
-                zoom = 12
-              ) %>%
-              leaflet::clearPopups() %>%
-              leaflet::addPopups(
-                lng = longitude,
-                lat = latitude,
-                popup = popup_content
-              )
-          }, error = function(e) {
-            cat("Error updating map:", e$message, "\n")
-          })
+          # Update map
+          map_proxy %>%
+            leaflet::setView(
+              lng = longitude, 
+              lat = latitude, 
+              zoom = 12
+            ) %>%
+            leaflet::clearPopups() %>%
+            leaflet::addPopups(
+              lng = longitude,
+              lat = latitude,
+              popup = popup_content
+            )
         } else {
           # Handle deselection
-          tryCatch({
-            map_proxy %>% leaflet::clearPopups()
-          }, error = function(e) {
-            cat("Error clearing popups:", e$message, "\n")
-          })
+          map_proxy %>% leaflet::clearPopups()
         }
       },
       

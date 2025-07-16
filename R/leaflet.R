@@ -12,7 +12,8 @@
 #' @export
 register_leaflet <- function(registry, leaflet_output_id, data_reactive,
                              shared_id_column, lng_col = "longitude",
-                             lat_col = "latitude", highlight_zoom = 12) {
+                             lat_col = "latitude", highlight_zoom = 12,
+                             click_handler = NULL) {
   # Check if leaflet is available
   if (!requireNamespace("leaflet", quietly = TRUE)) {
     stop("leaflet package is required for leaflet linking. Please install it with: install.packages('leaflet')")
@@ -31,9 +32,8 @@ register_leaflet <- function(registry, leaflet_output_id, data_reactive,
     stop("data_reactive must be a reactive expression returning a data frame")
   }
 
-  # Create a wrapped reactive that handles sf objects
   processed_data_reactive <- reactive({
-    data <- data_reactive()
+    data <- data_reactive()  # Get data from the reactive
     process_sf_data(data, lng_col, lat_col)
   })
 
@@ -48,7 +48,8 @@ register_leaflet <- function(registry, leaflet_output_id, data_reactive,
       markerColor = "red",
       iconColor = "#FFFFFF"
     ),
-    original_data_reactive = data_reactive  # Keep reference to original for custom handlers
+    original_data_reactive = data_reactive,  # Keep reference to original for custom handlers
+    click_handler = click_handler  # ADD THIS LINE
   )
 
   # Register with the registry using processed data
@@ -117,6 +118,7 @@ setup_leaflet_observers <- function(component_id, session, components, shared_st
       
       # ALWAYS use the processed data for selection
       current_data <- component_info$data_reactive()  # This is the processed data
+
       selected_data <- current_data[current_data[[component_info$shared_id_column]] == clicked_marker_id, ]
       selected_data <- if (nrow(selected_data) > 0) selected_data[1, ] else NULL
 
@@ -319,7 +321,9 @@ update_leaflet_selection <- function(component_id, selected_id, session, compone
         !is.null(component_info$config$original_data_reactive)) {
       # Get original data for custom handlers that might expect sf structure
       original_data <- component_info$config$original_data_reactive()
+
       if (inherits(original_data, "sf")) {
+
         # Add coordinates to original data for handlers
         coords <- sf::st_coordinates(original_data)
         original_data$longitude <- coords[, 1]
@@ -353,8 +357,7 @@ update_leaflet_selection <- function(component_id, selected_id, session, compone
 
 #' Process SF Data for Leaflet Integration
 #'
-#' Converts sf spatial objects to regular data frames with explicit longitude
-#' and latitude columns that linkeR expects for leaflet integration.
+#' Helper function to extract coordinates from an sf object or ensure lng/lat columns exist in a data frame.
 #'
 #' @param data Data frame or sf object. If sf object, coordinates will be extracted.
 #' @param lng_col Character string. Name for the longitude column (default: "longitude")
@@ -373,9 +376,9 @@ update_leaflet_selection <- function(component_id, selected_id, session, compone
 #' For sf objects, the function:
 #' \itemize{
 #'   \item Extracts point coordinates from the geometry column
-#'   \item Drops the geometry column to create a regular data frame
-#'   \item Adds the coordinates as new columns with the specified names
-#'   \item Handles different coordinate reference systems
+#'   \item Adds coordinates as new columns with the specified names
+#'   \item Preserves the original geometry column for advanced spatial operations
+#'   \item Returns an sf object with both geometry and coordinate columns
 #' }
 #'
 #' @examples
@@ -393,8 +396,15 @@ process_sf_data <- function(data, lng_col = "longitude", lat_col = "latitude") {
   if (requireNamespace("sf", quietly = TRUE) && inherits(data, "sf")) {
     # Handle sf objects
     tryCatch({
-      # Extract coordinates
-      coords <- sf::st_coordinates(data)
+
+      # For POLYGON/LINESTRING geometries, use centroids for coordinates
+      if (any(sf::st_geometry_type(data) != "POINT")) {
+        message("Non-POINT geometries detected. Using centroids for coordinates.")
+        centroids <- sf::st_centroid(data)
+        coords <- sf::st_coordinates(centroids)
+      } else {
+        coords <- sf::st_coordinates(data)
+      }
       
       # Check if we have point geometries (X, Y coordinates)
       if (ncol(coords) < 2) {
@@ -402,15 +412,11 @@ process_sf_data <- function(data, lng_col = "longitude", lat_col = "latitude") {
         return(data)
       }
       
-      # Drop geometry and convert to regular data frame
-      data_no_geom <- sf::st_drop_geometry(data)
-      
-      # Add coordinate columns and ensure they are numeric
-      data_no_geom[[lng_col]] <- as.numeric(coords[, 1])  # X = longitude
-      data_no_geom[[lat_col]] <- as.numeric(coords[, 2])   # Y = latitude
+      # Keep the original sf object but add coordinate columns
+      data[[lng_col]] <- as.numeric(coords[, 1])  # X = longitude
+      data[[lat_col]] <- as.numeric(coords[, 2])   # Y = latitude
 
-      return(data_no_geom)
-      
+      return(data)
     }, error = function(e) {
       warning("Failed to process sf object: ", e$message, ". Returning original data.")
       return(data)

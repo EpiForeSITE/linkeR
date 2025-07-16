@@ -111,35 +111,37 @@ link_plots <- function(session, ..., shared_id_column,
           )
         }
       }
-    } else {
-      # validate that component has shared_id_column (existing validation)
+
+      # USE REGISTER_LEAFLET FUNCTION
+      register_leaflet(
+        registry = registry,
+        leaflet_output_id = comp_name,
+        data_reactive = comp_data,
+        shared_id_column = shared_id_column,
+        lng_col = leaflet_lng_col,
+        lat_col = leaflet_lat_col,
+        highlight_zoom = 12,
+        click_handler = leaflet_click_handler
+      )
+      
+    } else if (comp_type == "datatable") {
+      # validate that component has shared_id_column
       if (!shared_id_column %in% names(isolate(comp_data()))) {
         stop(
           "Component '", comp_name, "' data must contain the shared_id_column: ",
           shared_id_column
         )
       }
-    }
 
-    # Configure component-specific settings
-    config <- list()
-    if (comp_type == "leaflet") {
-      config$lng_col <- leaflet_lng_col
-      config$lat_col <- leaflet_lat_col
-      config$highlight_zoom <- 12
-      config$click_handler <- leaflet_click_handler
-    } else if (comp_type == "datatable") {
-      config$click_handler <- dt_click_handler
+      # USE REGISTER_DT FUNCTION
+      register_dt(
+        registry = registry,
+        dt_output_id = comp_name,
+        data_reactive = comp_data,
+        shared_id_column = shared_id_column,
+        click_handler = dt_click_handler
+      )
     }
-
-    # Register component
-    registry$register_component(
-      component_id = comp_name,
-      type = comp_type,
-      data_reactive = comp_data,
-      shared_id_column = shared_id_column,
-      config = config
-    )
   }
 
   message(
