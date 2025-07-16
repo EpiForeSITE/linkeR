@@ -11,7 +11,8 @@ register_leaflet(
   shared_id_column,
   lng_col = "longitude",
   lat_col = "latitude",
-  highlight_zoom = 12
+  highlight_zoom = 12,
+  click_handler = NULL
 )
 }
 \arguments{

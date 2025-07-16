@@ -4,7 +4,13 @@
 \alias{register_dt}
 \title{Register a DT DataTable Component}
 \usage{
-register_dt(registry, dt_output_id, data_reactive, shared_id_column)
+register_dt(
+  registry,
+  dt_output_id,
+  data_reactive,
+  shared_id_column,
+  click_handler = NULL
+)
 }
 \arguments{
 \item{registry}{A link registry created by \code{create_link_registry()}}
