@@ -6,6 +6,7 @@
 #' @param dt_output_id Character string: the outputId of your DT::DTOutput
 #' @param data_reactive Reactive expression returning the data frame for the table
 #' @param shared_id_column Character string: name of the ID column
+#' @param click_handler Optional function: custom click handler for row selection
 #' @export
 register_dt <- function(registry, dt_output_id, data_reactive, shared_id_column,
                         click_handler = NULL) {

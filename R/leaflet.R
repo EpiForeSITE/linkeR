@@ -9,6 +9,7 @@
 #' @param lng_col Character string: name of longitude column (default: "longitude")
 #' @param lat_col Character string: name of latitude column (default: "latitude")
 #' @param highlight_zoom Numeric: zoom level when highlighting (default: 12)
+#' @param click_handler Optional function: custom click handler for row selection
 #' @export
 register_leaflet <- function(registry, leaflet_output_id, data_reactive,
                              shared_id_column, lng_col = "longitude",

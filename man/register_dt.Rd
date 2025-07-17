@@ -20,6 +20,8 @@ register_dt(
 \item{data_reactive}{Reactive expression returning the data frame for the table}
 
 \item{shared_id_column}{Character string: name of the ID column}
+
+\item{click_handler}{Optional function: custom click handler for row selection}
 }
 \description{
 Register a DT datatable for linking with other components.
