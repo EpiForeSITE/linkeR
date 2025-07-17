@@ -1,0 +1,328 @@
+---
+title: "Spatial Data Integration with sf"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Spatial Data Integration with sf}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE  # Set to FALSE since these are Shiny examples
+)
+```
+
+```{r setup}
+library(linkeR)
+library(shiny)
+library(leaflet)
+library(DT)
+library(sf)
+```
+
+# Introduction
+
+The `linkeR` package provides seamless integration with `sf` spatial objects, automatically extracting coordinates from geometry columns for use in leaflet maps. This vignette demonstrates how to work with spatial data in linked dashboards.
+
+## Key Features
+
+- **Automatic coordinate extraction**: linkeR automatically extracts longitude/latitude from sf geometry columns
+- **Preserves geometry**: The original geometry column is kept for advanced spatial operations
+- **Mixed data types**: Link sf objects with regular data frames
+- **Multi-geometry support**: Works with POINT, POLYGON, and LINESTRING geometries
+
+## Basic SF Integration
+
+Here's a simple example using sf point data:
+
+```{r basic-sf-example}
+library(shiny)
+library(leaflet)
+library(DT)
+library(linkeR)
+library(sf)
+
+# Create sample sf point data
+create_sample_sf_data <- function() {
+  # Create point geometries
+  points <- st_sfc(
+    st_point(c(-111.89, 40.76)),  # Salt Lake City
+    st_point(c(-111.97, 41.22)),  # Ogden
+    st_point(c(-111.66, 40.23)),  # Provo
+    crs = 4326  # WGS84
+  )
+  
+  # Create sf object
+  sf_data <- st_sf(
+    id = c("LOC_001", "LOC_002", "LOC_003"),
+    name = c("Salt Lake City", "Ogden", "Provo"),
+    population = c(200000, 87000, 116000),
+    geometry = points
+  )
+  
+  return(sf_data)
+}
+
+# Create corresponding table data
+create_table_data <- function() {
+  data.frame(
+    id = c("LOC_001", "LOC_002", "LOC_003"),
+    name = c("Salt Lake City", "Ogden", "Provo"),
+    county = c("Salt Lake", "Weber", "Utah"),
+    established = c(1847, 1851, 1849),
+    area_sq_mi = c(111.1, 26.6, 44.2)
+  )
+}
+
+ui <- fluidPage(
+  titlePanel("SF Integration Demo"),
+  
+  fluidRow(
+    column(6,
+      h4("Spatial Data (SF Object)"),
+      leafletOutput("location_map")
+    ),
+    column(6,
+      h4("City Information"),
+      DTOutput("city_table")
+    )
+  ),
+  
+  fluidRow(
+    column(12,
+      h4("Selection Details"),
+      verbatimTextOutput("selection_info")
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  
+  # Create reactive sf data
+  sf_data <- reactive({
+    create_sample_sf_data()
+  })
+  
+  # Create reactive table data
+  table_data <- reactive({
+    create_table_data()
+  })
+  
+  # Render leaflet map
+  output$location_map <- renderLeaflet({
+    data <- sf_data()
+    
+    # For initial rendering, extract coordinates manually
+    coords <- st_coordinates(data)
+    
+    leaflet() %>%
+      addTiles() %>%
+      addCircleMarkers(
+        lng = coords[, 1],
+        lat = coords[, 2],
+        layerId = data$id,  # Critical for linking!
+        radius = 8,
+        popup = ~paste("City:", data$name)
+      ) %>%
+      fitBounds(
+        lng1 = min(coords[, 1]) - 0.1,
+        lat1 = min(coords[, 2]) - 0.1,
+        lng2 = max(coords[, 1]) + 0.1,
+        lat2 = max(coords[, 2]) + 0.1
+      )
+  })
+  
+  # Render data table
+  output$city_table <- renderDT({
+    datatable(
+      table_data(),
+      selection = "single",
+      rownames = FALSE,
+      options = list(pageLength = 5)
+    )
+  })
+  
+  # Link sf object with regular data frame
+  registry <- link_plots(
+    session,
+    location_map = sf_data,    # SF object - coordinates auto-extracted!
+    city_table = table_data,   # Regular data frame
+    shared_id_column = "id"
+  )
+  
+  # Display selection information
+  output$selection_info <- renderText({
+    selection <- registry$get_selection()
+    if (!is.null(selection$selected_id)) {
+      selected_sf <- sf_data()[sf_data()$id == selection$selected_id, ]
+      selected_table <- table_data()[table_data()$id == selection$selected_id, ]
+      
+      paste0(
+        "Selected: ", selected_sf$name, "\n",
+        "Source: ", selection$source, "\n",
+        "Population: ", format(selected_sf$population, big.mark = ","), "\n",
+        "County: ", selected_table$county, "\n",
+        "Established: ", selected_table$established
+      )
+    } else {
+      "No selection"
+    }
+  })
+}
+
+shinyApp(ui, server)
+```
+
+## Advanced SF Integration with Custom Handlers
+
+You can create custom click handlers that work with both the extracted coordinates and the original geometry:
+
+```{r advanced-sf-example}
+# Custom click handler that uses both coordinates and geometry
+custom_sf_handler <- function(map_proxy, selected_data, session) {
+  if (!is.null(selected_data)) {
+    # Use extracted coordinates for map operations
+    longitude <- selected_data$longitude
+    latitude <- selected_data$latitude
+    
+    # Create rich popup content
+    popup_content <- paste0(
+      "<div style='min-width: 200px;'>",
+      "<h4>", selected_data$name, "</h4>",
+      "<p><strong>Population:</strong> ", format(selected_data$population, big.mark = ","), "</p>",
+      "<p><strong>Coordinates:</strong> ", round(longitude, 4), ", ", round(latitude, 4), "</p>",
+      "<p><em>Data from SF object</em></p>",
+      "</div>"
+    )
+    
+    # Update map view and add popup
+    map_proxy %>%
+      leaflet::setView(lng = longitude, lat = latitude, zoom = 12) %>%
+      leaflet::clearPopups() %>%
+      leaflet::addPopups(
+        lng = longitude,
+        lat = latitude,
+        popup = popup_content
+      )
+      
+    # If you have the original geometry, you could also add buffers, etc.
+    # This demonstrates how you can access both coordinate and geometry data
+    
+  } else {
+    # Handle deselection
+    map_proxy %>% leaflet::clearPopups()
+  }
+}
+
+# Use the custom handler in link_plots
+registry <- link_plots(
+  session,
+  location_map = sf_data,
+  city_table = table_data,
+  shared_id_column = "id",
+  leaflet_click_handler = custom_sf_handler
+)
+```
+
+## Working with Different Geometry Types
+
+linkeR supports various geometry types by extracting appropriate coordinates:
+
+```{r geometry-types}
+# Example with polygon data
+create_polygon_sf_data <- function() {
+  # Create polygon geometries (city boundaries)
+  polygon1 <- st_polygon(list(cbind(
+    c(-111.95, -111.85, -111.85, -111.95, -111.95),
+    c(40.72, 40.72, 40.80, 40.80, 40.72)
+  )))
+  
+  polygon2 <- st_polygon(list(cbind(
+    c(-112.05, -111.95, -111.95, -112.05, -112.05),
+    c(41.18, 41.18, 41.26, 41.26, 41.18)
+  )))
+  
+  polygons <- st_sfc(polygon1, polygon2, crs = 4326)
+  
+  # Create sf object with polygon geometries
+  sf_polygons <- st_sf(
+    id = c("ZONE_001", "ZONE_002"),
+    name = c("Downtown SLC", "Downtown Ogden"),
+    area_sq_km = c(25.5, 18.2),
+    geometry = polygons
+  )
+  
+  return(sf_polygons)
+}
+
+# linkeR automatically extracts centroids for non-POINT geometries
+polygon_data <- reactive({
+  create_polygon_sf_data()
+})
+
+# This works the same way - linkeR handles the geometry type automatically
+registry <- link_plots(
+  session,
+  zone_map = polygon_data,     # Polygon sf object
+  zone_table = table_data,     # Regular data frame
+  shared_id_column = "id"
+)
+```
+
+## Benefits of SF Integration
+
+### 1. **Automatic Coordinate Extraction**
+- No need to manually extract coordinates from geometry columns
+- Works with POINT, POLYGON, and LINESTRING geometries
+- Handles coordinate reference system transformations
+
+### 2. **Preserved Geometry**
+- Original geometry column is maintained
+- Enables advanced spatial operations in custom handlers
+- Supports complex spatial workflows
+
+### 3. **Mixed Data Types**
+- Link sf objects with regular data frames seamlessly
+- Consistent behavior across different data sources
+- Flexible dashboard design
+
+### 4. **Developer-Friendly**
+- Simple API - just pass your sf object to `link_plots()`
+- Extensive error handling and validation
+- Clear documentation and examples
+
+## Troubleshooting
+
+### Common Issues:
+
+**"Required columns missing"**: Ensure your sf object has valid geometries that can be converted to coordinates.
+
+**"Non-POINT geometries detected"**: This is normal - linkeR automatically uses centroids for polygons and lines. There is potential for more advanced support in the future.
+
+**Performance issues**: Large sf objects can impact performance. Consider simplifying geometries or using spatial indexing.
+
+### Debugging SF Integration:
+
+```{r debugging}
+# Check your sf object structure
+sf_data <- your_sf_object()
+print(st_geometry_type(sf_data))  # Check geometry types
+print(st_crs(sf_data))           # Check coordinate reference system
+print(names(sf_data))            # Check column names
+
+# Test coordinate extraction
+coords <- st_coordinates(sf_data)
+print(head(coords))              # Verify coordinates are numeric
+```
+
+## Next Steps
+
+- See `vignette("getting-started")` for basic linkeR usage
+- See `vignette("custom-behaviors")` for advanced click handlers
+- See `vignette("multiple-components")` for complex dashboard examples
+- Run `system.file("examples", "sf_app.R", package = "linkeR")` for a complete sf demonstration
+
+The sf integration in linkeR makes it easy to create interactive spatial dashboards without manual coordinate management, while preserving the full power of sf for advanced spatial operations.

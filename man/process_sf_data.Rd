@@ -45,4 +45,6 @@ processed <- process_sf_data(sf_data, "lon", "lat")
 regular_df <- data.frame(id = 1:3, longitude = c(-74, -75, -76), latitude = c(40, 41, 42))
 processed <- process_sf_data(regular_df, "longitude", "latitude")
 }
+
 }
+\keyword{internal}

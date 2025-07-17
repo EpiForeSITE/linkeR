@@ -392,6 +392,9 @@ update_leaflet_selection <- function(component_id, selected_id, session, compone
 #' regular_df <- data.frame(id = 1:3, longitude = c(-74, -75, -76), latitude = c(40, 41, 42))
 #' processed <- process_sf_data(regular_df, "longitude", "latitude")
 #' }
+#' 
+#' @keywords internal
+#' @export
 process_sf_data <- function(data, lng_col = "longitude", lat_col = "latitude") {
   # Check if this is an sf object
   if (requireNamespace("sf", quietly = TRUE) && inherits(data, "sf")) {
