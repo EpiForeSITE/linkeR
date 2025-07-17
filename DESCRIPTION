@@ -19,6 +19,7 @@ Imports:
 Suggests:
     leaflet,
     DT,
+    sf,
     testthat (>= 3.0.0),
     knitr,
     rmarkdown

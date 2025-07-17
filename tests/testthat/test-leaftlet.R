@@ -389,3 +389,205 @@ test_that("leaflet handles coordinate validation", {
   expect_length(components, 1)
   expect_true("invalid_map" %in% names(components))
 })
+
+test_that("leaflet handles sf objects correctly", {
+  skip_if_not_installed("leaflet")
+  skip_if_not_installed("sf")
+  
+  session <- list(
+    input = list(),
+    userData = list(),
+    onSessionEnded = function(callback) callback
+  )
+  
+  # Create mock sf object
+  mock_sf_data <- reactive({
+    # Create simple point geometries
+    points <- sf::st_sfc(
+      sf::st_point(c(-74.0060, 40.7128)),
+      sf::st_point(c(-87.6298, 41.8781)),
+      sf::st_point(c(-71.0589, 42.3601))
+    )
+    
+    sf::st_sf(
+      business_id = c("BIZ_001", "BIZ_002", "BIZ_003"),
+      name = c("Company A", "Company B", "Company C"),
+      geometry = points
+    )
+  })
+  
+  registry <- create_link_registry(session)
+  
+  # Should handle sf objects without error
+  expect_no_error({
+    register_leaflet(registry, "sf_map", mock_sf_data, "business_id")
+  })
+  
+  # Check that component was registered
+  components <- registry$get_components()
+  expect_length(components, 1)
+  expect_true("sf_map" %in% names(components))
+  
+  # Test the processed data by calling the reactive directly
+  # (not through the component registry which might have additional wrapping)
+  test_data <- isolate(mock_sf_data())
+  processed_data <- process_sf_data(test_data, "longitude", "latitude")
+  
+  # The processed data should now have longitude/latitude columns
+  expect_true("longitude" %in% names(processed_data))
+  expect_true("latitude" %in% names(processed_data))
+  expect_true("business_id" %in% names(processed_data))
+  expect_true("name" %in% names(processed_data))
+
+  expect_true("geometry" %in% names(processed_data))
+  
+  # Check coordinate values are reasonable
+  expect_true(all(processed_data$longitude >= -180 & processed_data$longitude <= 180))
+  expect_true(all(processed_data$latitude >= -90 & processed_data$latitude <= 90))
+  
+  # Verify the specific coordinate values match what we expect
+  expect_equal(processed_data$longitude, c(-74.0060, -87.6298, -71.0589))
+  expect_equal(processed_data$latitude, c(40.7128, 41.8781, 42.3601))
+})
+
+test_that("process_sf_data handles different input types", {
+  skip_if_not_installed("sf")
+  
+  # Test with sf object
+  points <- sf::st_sfc(
+    sf::st_point(c(-74, 40)),
+    sf::st_point(c(-75, 41))
+  )
+  sf_obj <- sf::st_sf(id = 1:2, geometry = points)
+  
+  result <- process_sf_data(sf_obj, "lon", "lat")
+  expect_true("lon" %in% names(result))
+  expect_true("lat" %in% names(result))
+  expect_true("geometry" %in% names(result))
+  expect_equal(result$lon, c(-74, -75))
+  expect_equal(result$lat, c(40, 41))
+  
+  # Test with regular data frame (should pass through)
+  regular_df <- data.frame(
+    id = 1:2,
+    longitude = c(-74, -75),
+    latitude = c(40, 41)
+  )
+  
+  result2 <- process_sf_data(regular_df, "longitude", "latitude")
+  expect_identical(result2, regular_df)
+  
+  # Test with missing columns (should warn but return original)
+  bad_df <- data.frame(id = 1:2, value = c(10, 20))
+  expect_warning(
+    result3 <- process_sf_data(bad_df, "longitude", "latitude"),
+    "missing required coordinate columns"
+  )
+  expect_identical(result3, bad_df)
+})
+
+test_that("sf integration works with link_plots", {
+  skip_if_not_installed("leaflet")
+  skip_if_not_installed("sf")
+  skip_if_not_installed("DT")
+  
+  session <- list(
+    input = list(),
+    userData = list(),
+    onSessionEnded = function(callback) callback
+  )
+  
+  # Create sf data
+  points <- sf::st_sfc(
+    sf::st_point(c(-74, 40)),
+    sf::st_point(c(-75, 41))
+  )
+  sf_data <- reactive({
+    sf::st_sf(
+      business_id = c("BIZ_001", "BIZ_002"),
+      name = c("Company A", "Company B"),
+      geometry = points
+    )
+  })
+  
+  # Create regular table data with same IDs
+  table_data <- reactive({
+    data.frame(
+      business_id = c("BIZ_001", "BIZ_002"),
+      name = c("Company A", "Company B"),
+      revenue = c(100000, 200000)
+    )
+  })
+  
+  # Should link sf map with regular table
+  expect_no_error({
+    registry <- link_plots(
+      session,
+      business_map = sf_data,
+      business_table = table_data,
+      shared_id_column = "business_id"
+    )
+  })
+  
+  # Both components should be registered
+  components <- registry$get_components()
+  expect_length(components, 2)
+  expect_true("business_map" %in% names(components))
+  expect_true("business_table" %in% names(components))
+  
+  # Test that the sf data was processed correctly by testing the original data
+  # rather than trying to access the wrapped reactive in the component
+  original_sf <- isolate(sf_data())
+  processed_sf <- process_sf_data(original_sf, "longitude", "latitude")
+  
+  expect_true("longitude" %in% names(processed_sf))
+  expect_true("latitude" %in% names(processed_sf))
+  expect_true("geometry" %in% names(processed_sf))
+})
+
+test_that("process_sf_data preserves geometry and adds coordinates", {
+  skip_if_not_installed("sf")
+  
+  # Create a mock sf object with POINT geometries
+  points <- sf::st_sfc(
+    sf::st_point(c(-74, 40)),
+    sf::st_point(c(-75, 41))
+  )
+  sf_obj <- sf::st_sf(id = 1:2, geometry = points)
+  
+  # Process the sf object
+  result <- process_sf_data(sf_obj, "lon", "lat")
+  
+  # Check that the geometry is preserved and coordinates are added
+  expect_true("geometry" %in% names(result))
+  expect_true("lon" %in% names(result))
+  expect_true("lat" %in% names(result))
+  
+  # Check coordinate values
+  expect_equal(result$lon, c(-74, -75))
+  expect_equal(result$lat, c(40, 41))
+})
+
+test_that("process_sf_data works for non-point data", {
+  skip_if_not_installed("sf")
+  
+  # Create a mock sf object with POLYGON geometries
+  polygons <- sf::st_sfc(
+    sf::st_polygon(list(rbind(c(-74, 40), c(-75, 40), c(-75, 41), c(-74, 41), c(-74, 40)))),
+    sf::st_polygon(list(rbind(c(-76, 42), c(-77, 42), c(-77, 43), c(-76, 43), c(-76, 42))))
+  )
+  
+  sf_obj <- sf::st_sf(id = 1:2, geometry = polygons)
+  
+  # Process the sf object
+  result <- process_sf_data(sf_obj, "lon", "lat")
+  
+  # Check that the geometry is preserved and coordinates are added
+  expect_true("geometry" %in% names(result))
+  expect_true("lon" %in% names(result))
+  expect_true("lat" %in% names(result))
+  
+  # Check coordinate values (should be centroids)
+  expect_equal(result$lon, c(mean(c(-74, -75)), mean(c(-76, -77))))
+  expect_equal(result$lat, c(mean(c(40, 41)), mean(c(42, 43))))
+})

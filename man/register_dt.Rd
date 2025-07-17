@@ -4,7 +4,13 @@
 \alias{register_dt}
 \title{Register a DT DataTable Component}
 \usage{
-register_dt(registry, dt_output_id, data_reactive, shared_id_column)
+register_dt(
+  registry,
+  dt_output_id,
+  data_reactive,
+  shared_id_column,
+  click_handler = NULL
+)
 }
 \arguments{
 \item{registry}{A link registry created by \code{create_link_registry()}}
@@ -14,6 +20,8 @@ register_dt(registry, dt_output_id, data_reactive, shared_id_column)
 \item{data_reactive}{Reactive expression returning the data frame for the table}
 
 \item{shared_id_column}{Character string: name of the ID column}
+
+\item{click_handler}{Optional function: custom click handler for row selection}
 }
 \description{
 Register a DT datatable for linking with other components.

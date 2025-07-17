@@ -11,7 +11,8 @@ register_leaflet(
   shared_id_column,
   lng_col = "longitude",
   lat_col = "latitude",
-  highlight_zoom = 12
+  highlight_zoom = 12,
+  click_handler = NULL
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ register_leaflet(
 \item{lat_col}{Character string: name of latitude column (default: "latitude")}
 
 \item{highlight_zoom}{Numeric: zoom level when highlighting (default: 12)}
+
+\item{click_handler}{Optional function: custom click handler for row selection}
 }
 \description{
 Register a Leaflet map for linking with other components.

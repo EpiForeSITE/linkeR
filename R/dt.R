@@ -6,8 +6,10 @@
 #' @param dt_output_id Character string: the outputId of your DT::DTOutput
 #' @param data_reactive Reactive expression returning the data frame for the table
 #' @param shared_id_column Character string: name of the ID column
+#' @param click_handler Optional function: custom click handler for row selection
 #' @export
-register_dt <- function(registry, dt_output_id, data_reactive, shared_id_column) {
+register_dt <- function(registry, dt_output_id, data_reactive, shared_id_column,
+                        click_handler = NULL) {
   # Check if DT is available
   if (!requireNamespace("DT", quietly = TRUE)) {
     stop("DT package is required for DT table linking. Please install it with: install.packages('DT')")
@@ -31,7 +33,9 @@ register_dt <- function(registry, dt_output_id, data_reactive, shared_id_column)
     type = "datatable",
     data_reactive = data_reactive,
     shared_id_column = shared_id_column,
-    config = list()
+    config = list(
+      click_handler = click_handler
+    )
   )
 }
 

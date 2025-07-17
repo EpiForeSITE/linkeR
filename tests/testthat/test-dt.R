@@ -71,7 +71,7 @@ test_that("register_dt creates proper component registration", {
   expect_equal(dt_component$type, "datatable")
   expect_equal(dt_component$shared_id_column, "business_id")
   expect_true(is.list(dt_component$config))
-  expect_length(dt_component$config, 0) # Should be empty list by default
+  expect_length(dt_component$config, 1) # Should only contain the click handler by default
 })
 
 test_that("register_dt requires DT package", {

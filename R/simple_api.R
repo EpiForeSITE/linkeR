@@ -2,16 +2,19 @@
 #'
 #' A simple interface to link interactive plots and tables in Shiny.
 #' This function automatically detects component types and sets up bidirectional linking.
+#' Supports sf spatial objects for leaflet maps - coordinates will be automatically extracted.
 #'
 #' @param session The Shiny session object
 #' @param ... Named arguments where names are component output IDs and values are
 #'   reactive data frames. Each data frame must contain the shared_id_column.
+#'   For leaflet maps: can be sf objects (coordinates auto-extracted) or regular
+#'   data frames with longitude/latitude columns.
 #' @param shared_id_column Character string naming the column that contains unique
 #'   identifiers present in all linked components.
 #' @param leaflet_lng_col Character string naming the longitude column for leaflet maps.
-#'   Defaults to "longitude".
+#'   Defaults to "longitude". For sf objects, this will be the name of the created column.
 #' @param leaflet_lat_col Character string naming the latitude column for leaflet maps.
-#'   Defaults to "latitude".
+#'   Defaults to "latitude". For sf objects, this will be the name of the created column.
 #' @param leaflet_click_handler Optional function that handles leaflet marker clicks.
 #'   This will be used for both direct clicks and when other components select this marker.
 #'   Function should accept (map_proxy, selected_data, session).
@@ -82,40 +85,63 @@ link_plots <- function(session, ..., shared_id_column,
   # Create registry with callback
   registry <- create_link_registry(session, on_selection_change = on_selection_change)
 
-  # Register each component
   for (comp_name in names(components)) {
     comp_data <- components[[comp_name]]
 
     # Detect component type
     comp_type <- detect_component_type(comp_name, comp_data)
 
-    # validate that component has shared_id_column
-    if (!shared_id_column %in% names(isolate(comp_data()))) {
-      stop(
-        "Component '", comp_name, "' data must contain the shared_id_column: ",
-        shared_id_column
+    # For leaflet components, check data compatibility early
+    if (comp_type == "leaflet") {
+      # Test data processing to give early feedback
+      test_data <- isolate(comp_data())
+      
+      if (requireNamespace("sf", quietly = TRUE) && inherits(test_data, "sf")) {
+        message("Detected sf object for ", comp_name, ". Will automatically extract coordinates.")
+      } else {
+        # Validate that regular data frame has required columns
+        required_cols <- c(shared_id_column, leaflet_lng_col, leaflet_lat_col)
+        missing_cols <- setdiff(required_cols, names(test_data))
+        if (length(missing_cols) > 0) {
+          stop(
+            "Component '", comp_name, "' is missing required columns: ",
+            paste(missing_cols, collapse = ", "),
+            ". For sf objects, coordinates will be extracted automatically. ",
+            "For regular data frames, ensure ", leaflet_lng_col, " and ", leaflet_lat_col, " columns exist."
+          )
+        }
+      }
+
+      # USE REGISTER_LEAFLET FUNCTION
+      register_leaflet(
+        registry = registry,
+        leaflet_output_id = comp_name,
+        data_reactive = comp_data,
+        shared_id_column = shared_id_column,
+        lng_col = leaflet_lng_col,
+        lat_col = leaflet_lat_col,
+        highlight_zoom = 12,
+        click_handler = leaflet_click_handler
+      )
+      
+    } else if (comp_type == "datatable") {
+      # validate that component has shared_id_column
+      if (!shared_id_column %in% names(isolate(comp_data()))) {
+        stop(
+          "Component '", comp_name, "' data must contain the shared_id_column: ",
+          shared_id_column
+        )
+      }
+
+      # USE REGISTER_DT FUNCTION
+      register_dt(
+        registry = registry,
+        dt_output_id = comp_name,
+        data_reactive = comp_data,
+        shared_id_column = shared_id_column,
+        click_handler = dt_click_handler
       )
     }
-
-    # Configure component-specific settings
-    config <- list()
-    if (comp_type == "leaflet") {
-      config$lng_col <- leaflet_lng_col
-      config$lat_col <- leaflet_lat_col
-      config$highlight_zoom <- 12
-      config$click_handler <- leaflet_click_handler # Store user's click handler
-    } else if (comp_type == "datatable") {
-      config$click_handler <- dt_click_handler # Store user's click handler
-    }
-
-    # Register component
-    registry$register_component(
-      component_id = comp_name,
-      type = comp_type,
-      data_reactive = comp_data,
-      shared_id_column = shared_id_column,
-      config = config
-    )
   }
 
   message(

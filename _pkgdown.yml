@@ -61,6 +61,11 @@ articles:
   contents:
   - custom-behaviors
 
+- title: "sf Integration"
+  navbar: ~
+  contents:
+  - sf-integration
+
 news:
   releases:
   - text: "Version 0.1.0"

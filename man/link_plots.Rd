@@ -19,16 +19,18 @@ link_plots(
 \item{session}{The Shiny session object}
 
 \item{...}{Named arguments where names are component output IDs and values are
-reactive data frames. Each data frame must contain the shared_id_column.}
+reactive data frames. Each data frame must contain the shared_id_column.
+For leaflet maps: can be sf objects (coordinates auto-extracted) or regular
+data frames with longitude/latitude columns.}
 
 \item{shared_id_column}{Character string naming the column that contains unique
 identifiers present in all linked components.}
 
 \item{leaflet_lng_col}{Character string naming the longitude column for leaflet maps.
-Defaults to "longitude".}
+Defaults to "longitude". For sf objects, this will be the name of the created column.}
 
 \item{leaflet_lat_col}{Character string naming the latitude column for leaflet maps.
-Defaults to "latitude".}
+Defaults to "latitude". For sf objects, this will be the name of the created column.}
 
 \item{leaflet_click_handler}{Optional function that handles leaflet marker clicks.
 This will be used for both direct clicks and when other components select this marker.
@@ -47,6 +49,7 @@ Invisibly returns the created registry object
 \description{
 A simple interface to link interactive plots and tables in Shiny.
 This function automatically detects component types and sets up bidirectional linking.
+Supports sf spatial objects for leaflet maps - coordinates will be automatically extracted.
 }
 \examples{
 \dontrun{
