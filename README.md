@@ -12,6 +12,7 @@ coverage](https://codecov.io/gh/EpiForeSITE/linkeR/graph/badge.svg)](https://app
 status](https://www.r-pkg.org/badges/version/linkeR)](https://CRAN.R-project.org/package=linkeR)
 [![Lifecycle:
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[![EpiForeSITE](https://img.shields.io/badge/Part%20of-EpiForeSITE-blue.svg)](https://github.com/EpiForeSITE/software)
 <!-- badges: end -->
 
 > **Create synchronized, interactive dashboards where one click updates

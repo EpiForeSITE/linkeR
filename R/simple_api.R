@@ -1,8 +1,9 @@
 #' Simple Plot Linking Function
 #'
-#' A simple interface to link interactive plots and tables in Shiny.
+#' @description A simple interface to link interactive plots and tables in Shiny.
 #' This function automatically detects component types and sets up bidirectional linking.
-#' Supports sf spatial objects for leaflet maps - coordinates will be automatically extracted.
+#' For more robust applications, especially with complex naming schemes, consider using
+#' \code{\link{register_leaflet}} and \code{\link{register_dt}} directly.
 #'
 #' @param session The Shiny session object
 #' @param ... Named arguments where names are component output IDs and values are
