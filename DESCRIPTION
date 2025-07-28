@@ -7,17 +7,16 @@ Authors@R:
     person("Centers for Disease Control and Prevention's Center for Forecasting and Outbreak Analytics",
         role="fnd", comment = "Cooperative agreement CDC-RFA-FT-23-0069"))
 Description: Provides a simple interface to create bidirectional links between 
-    interactive plots and tables in Shiny applications. Supports linking between
-    Leaflet maps, DT tables, and other interactive components through a unified
-    registry system.
+    interactive plots and tables in Shiny applications, supporting components like
+    Leaflet maps and DT tables.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
 Imports:
-    shiny,
-    magrittr,
-    later
+    shiny (>= 1.5.0),
+    magrittr (>= 2.0.0),
+    later (>= 1.0.0)
 Suggests:
     leaflet,
     DT,
