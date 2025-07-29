@@ -22,6 +22,7 @@ knitr::opts_chunk$set(
 [![CRAN status](https://www.r-pkg.org/badges/version/linkeR)](https://CRAN.R-project.org/package=linkeR)
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 [![EpiForeSITE](https://img.shields.io/badge/Part%20of-EpiForeSITE-blue.svg)](https://github.com/EpiForeSITE/software)
+[![ForeSITE Group](https://github.com/EpiForeSITE/software/raw/e82ed88f75e0fe5c0a1a3b38c2b94509f122019c/docs/assets/foresite-software-badge.svg)](https://github.com/EpiForeSITE)
 <!-- badges: end -->
 
 > **Create synchronized, interactive dashboards where one click updates multiple components**
