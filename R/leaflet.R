@@ -1,6 +1,6 @@
 #' Register a Leaflet Component
 #'
-#' Register a Leaflet map for linking with other components.
+#' `register_leaflet` registers a Leaflet map for linking with other components.
 #'
 #' @param registry A link registry created by \code{create_link_registry()}
 #' @param leaflet_output_id Character string: the outputId of your leafletOutput
@@ -65,7 +65,7 @@ register_leaflet <- function(registry, leaflet_output_id, data_reactive,
 
 #' Setup Leaflet Map Observers
 #'
-#' Creates two observers for handling Leaflet map interactions in a linked component system.
+#' `setup_leaflet_observers` creates two observers for handling Leaflet map interactions in a linked component system.
 #' The first observer handles direct marker clicks on the map, while the second observer
 #' responds to selection changes from other linked components.
 #'
@@ -171,7 +171,7 @@ setup_leaflet_observers <- function(component_id, session, components, shared_st
 
 #' Apply Default Leaflet Behavior for Selection Events
 #'
-#' This helper function provides consistent default behavior for leaflet maps
+#' `apply_default_leaflet_behavior` is a helper function that provides consistent default behavior for leaflet maps
 #' when handling selection events. It manages popup display and map navigation
 #' based on the selection state.
 #'
@@ -239,7 +239,7 @@ apply_default_leaflet_behavior <- function(map_proxy, selected_data, component_i
 
 #' Update Leaflet Map Selection
 #'
-#' Updates a Leaflet map component to reflect a new selection state. This function
+#' `update_leaflet_selection` updates a Leaflet map component to reflect a new selection state. This function
 #' handles both selection and deselection events, applying either custom user-defined
 #' click handlers or default behaviors.
 #'
@@ -358,7 +358,7 @@ update_leaflet_selection <- function(component_id, selected_id, session, compone
 
 #' Process SF Data for Leaflet Integration
 #'
-#' Helper function to extract coordinates from an sf object or ensure lng/lat columns exist in a data frame.
+#' `process_sf_data` is a helper function to extract coordinates from an sf object or ensure lng/lat columns exist in a data frame.
 #'
 #' @param data Data frame or sf object. If sf object, coordinates will be extracted.
 #' @param lng_col Character string. Name for the longitude column (default: "longitude")
