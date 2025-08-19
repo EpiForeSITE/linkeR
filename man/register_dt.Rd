@@ -5,6 +5,7 @@
 \title{Register a DT DataTable Component}
 \usage{
 register_dt(
+  module_session,
   registry,
   dt_output_id,
   data_reactive,
@@ -13,6 +14,8 @@ register_dt(
 )
 }
 \arguments{
+\item{module_session}{Shiny session object. The session from the module where the DT is used. This could be global session in non-modular apps.}
+
 \item{registry}{A link registry created by \code{create_link_registry()}}
 
 \item{dt_output_id}{Character string: the outputId of your DT::DTOutput}

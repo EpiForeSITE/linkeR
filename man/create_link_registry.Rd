@@ -16,9 +16,10 @@ source_component_id, and session}
 \value{
 A link_registry object with the following methods:
 \describe{
-\item{register_component(component_id, type, data_reactive, shared_id_column, config)}{
+\item{register_component(module_session, component_id, type, data_reactive, shared_id_column, config)}{
 Register a new component with the registry. Parameters:
 \itemize{
+\item module_session: Shiny session object for namespacing. Can be global session in non-modular apps.
 \item component_id: Unique string identifier for the component
 \item type: Component type (e.g., "table", "plot")
 \item data_reactive: Reactive expression returning the component's data
