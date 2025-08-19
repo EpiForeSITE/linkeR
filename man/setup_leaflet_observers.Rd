@@ -35,7 +35,7 @@ List containing two observer objects:
 \item{observer2}{Responds to selection changes from other components}
 }
 \description{
-Creates two observers for handling Leaflet map interactions in a linked component system.
+\code{setup_leaflet_observers} creates two observers for handling Leaflet map interactions in a linked component system.
 The first observer handles direct marker clicks on the map, while the second observer
 responds to selection changes from other linked components.
 }

@@ -37,7 +37,7 @@ Programmatically update the selection state
 }
 }
 \description{
-Creates a registry system that manages linked interactions between multiple
+\code{create_link_registry} creates a registry system that manages linked interactions between multiple
 Shiny components, allowing them to share selection state and coordinate
 their behavior.
 }

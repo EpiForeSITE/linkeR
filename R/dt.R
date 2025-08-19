@@ -7,7 +7,31 @@
 #' @param data_reactive Reactive expression returning the data frame for the table
 #' @param shared_id_column Character string: name of the ID column
 #' @param click_handler Optional function: custom click handler for row selection
+#' @returns NULL (invisible). This function is called for its side effects of registering the component.
 #' @export
+#' @examples
+#' \dontrun{
+#'   # Create a mock session for the example
+#'   session <- shiny::MockShinySession$new()
+#'
+#'   # Create a registry
+#'   registry <- create_link_registry(session)
+#'
+#'   # Sample reactive data
+#'   my_data <- shiny::reactive({
+#'     data.frame(
+#'       id = 1:5,
+#'       name = c("A", "B", "C", "D", "E"),
+#'       value = 11:15
+#'     )
+#'   })
+#'
+#'   # Register a DT component
+#'   register_dt(registry, "my_table", my_data, "id")
+#'
+#'   # Verify registration
+#'   print(registry$get_components())
+#' }
 register_dt <- function(registry, dt_output_id, data_reactive, shared_id_column,
                         click_handler = NULL) {
   # Check if DT is available

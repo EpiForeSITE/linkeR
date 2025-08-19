@@ -11,6 +11,30 @@
 #' @param highlight_zoom Numeric: zoom level when highlighting (default: 12)
 #' @param click_handler Optional function: custom click handler for row selection
 #' @export
+#' @examples
+#' \dontrun{
+#'   # Create a mock session for the example
+#'   session <- shiny::MockShinySession$new()
+#'
+#'   # Create a registry
+#'   registry <- create_link_registry(session)
+#'
+#'   # Sample reactive data
+#'   my_data <- shiny::reactive({
+#'     data.frame(
+#'       id = 1:5,
+#'       name = c("A", "B", "C", "D", "E"),
+#'       longitude = -111.9 + runif(5, -0.1, 0.1),
+#'       latitude = 40.7 + runif(5, -0.1, 0.1)
+#'     )
+#'   })
+#'
+#'   # Register a leaflet component
+#'   register_leaflet(registry, "my_map", my_data, "id")
+#'
+#'   # Verify registration
+#'   print(registry$get_components())
+#' }
 register_leaflet <- function(registry, leaflet_output_id, data_reactive,
                              shared_id_column, lng_col = "longitude",
                              lat_col = "latitude", highlight_zoom = 12,
@@ -269,7 +293,14 @@ apply_default_leaflet_behavior <- function(map_proxy, selected_data, component_i
 #' }
 #'
 #' @return NULL (invisibly). The function is called for its side effects on the Leaflet map.
-#'
+#' @examples
+#' \dontrun{
+#' # Update the map with a new selection
+#' update_leaflet_selection("my_map", "selected_id", session, components)
+#' #' # Deselect the map
+#' update_leaflet_selection("my_map", NULL, session, components)
+#' }
+#' 
 #' @note If the leaflet package is not available, the function returns early without error.
 #'   Missing required columns will generate a warning and cause early return.
 update_leaflet_selection <- function(component_id, selected_id, session, components) {
@@ -388,14 +419,21 @@ update_leaflet_selection <- function(component_id, selected_id, session, compone
 #' }
 #'
 #' @examples
-#' \dontrun{
-#' # Process sf object
-#' sf_data <- sf::st_read("path/to/shapefile.shp")
-#' processed <- process_sf_data(sf_data, "lon", "lat")
+#' if (requireNamespace("sf", quietly = TRUE)) {
+#'   # Create a sample sf object
+#'   sf_data <- sf::st_as_sf(
+#'     data.frame(
+#'       id = 1:2,
+#'       name = c("A", "B"),
+#'       geom = c("POINT(-111.9 40.7)", "POINT(-111.8 40.6)")
+#'     ),
+#'     wkt = "geom",
+#'     crs = 4326
+#'   )
 #'
-#' # Regular data frame passes through unchanged
-#' regular_df <- data.frame(id = 1:3, longitude = c(-74, -75, -76), latitude = c(40, 41, 42))
-#' processed <- process_sf_data(regular_df, "longitude", "latitude")
+#'   # Process the sf object
+#'   processed_data <- process_sf_data(sf_data)
+#'   print(processed_data)
 #' }
 #' 
 #' @keywords internal

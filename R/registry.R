@@ -40,6 +40,7 @@
 #' Components are automatically cleaned up when re-registered to prevent
 #' memory leaks from orphaned observers.
 #'
+#' @export
 #' @examples
 #' \dontrun{
 #' # In your Shiny server function

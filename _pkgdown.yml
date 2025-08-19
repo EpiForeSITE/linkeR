@@ -18,15 +18,17 @@ navbar:
     right: [search, github]
 
 reference:
-- title: "Main Functions"
-  desc: "Primary functions for linking components"
+- title: "Main Function"
+  desc: "The easiest way to link components"
   contents:
   - link_plots
-  - create_link_registry
 
-- title: "Component Registration"
-  desc: "Functions to register specific component types"
+- title: "Advanced Usage & Component API"
+  desc: >
+    For advanced use cases or integrating custom components. Most users
+    should start with `link_plots()`.
   contents:
+  - create_link_registry
   - register_leaflet
   - register_dt
 
@@ -65,8 +67,3 @@ articles:
   navbar: ~
   contents:
   - sf-integration
-
-news:
-  releases:
-  - text: "Version 0.1.0"
-    href: https://github.com/EpiForeSITE/linkeR/releases/tag/v0.1.0

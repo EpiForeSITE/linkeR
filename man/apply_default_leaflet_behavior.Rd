@@ -28,7 +28,7 @@ If NULL, indicates deselection occurred.}
 Returns the modified map proxy object with updated view and popups
 }
 \description{
-This helper function provides consistent default behavior for leaflet maps
+\code{apply_default_leaflet_behavior} is a helper function that provides consistent default behavior for leaflet maps
 when handling selection events. It manages popup display and map navigation
 based on the selection state.
 }

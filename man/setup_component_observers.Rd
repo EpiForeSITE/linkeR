@@ -35,7 +35,7 @@ selection changes occur.}
 List of observer objects created for the specified component type. Throws Error if an unsupported component type is provided.
 }
 \description{
-This internal function creates and configures observers for different types of
+\code{setup_component_observers} is an internal function that creates and configures observers for different types of
 interactive components based on the specified component type. It acts as a
 dispatcher that calls the appropriate setup function for each supported component.
 }
