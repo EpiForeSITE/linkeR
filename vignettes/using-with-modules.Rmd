@@ -1,0 +1,179 @@
+---
+title: "Using linkeR with Shiny Modules"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Using linkeR with Shiny Modules}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE  # Set to FALSE since these are Shiny examples
+)
+```
+
+```{r setup}
+library(linkeR)
+library(shiny)
+library(leaflet)
+library(DT)
+```
+
+## Introduction: Why a Different Approach for Modules?
+
+While `link_plots()` is perfect for single-file Shiny applications, a more robust pattern is needed when working with **Shiny Modules**. This is because modules are designed to be self-contained and reusable, a principle known as **encapsulation**.
+
+The main app should not need to know the internal `outputId`s of the components within a module. For `linkeR` to work correctly, it needs to be aware of the unique "namespace" that Shiny gives to each module's UI elements.
+
+The recommended pattern for modular apps follows three simple steps that respect module encapsulation and lead to cleaner, more maintainable code.
+
+## The Three-Step Pattern for Modular Linking
+
+The core idea is to create a central "linking manager" (the registry) in your main app and pass it down to each module. The modules then register their own components with this central manager.
+
+1.  **Main App**: Create a central `link_registry` object.
+2.  **Main App**: Pass the `registry` object into each module's server function.
+3.  **Inside Each Module**: Call the relevant `register_xyz` function from the module's server, using the module's own `session` object.
+
+This vignette will walk through building a modular app based on the example found in `inst/examples/modularized_example/`.
+
+---
+
+### Step 1: Create the Map Module (`map_module.R`)
+
+First, we define the UI and server for our map component. The key change is that the server function now accepts a `registry` argument and calls `register_leaflet()` itself.
+
+```{r map-module}
+# /path/to/your/app/map_module.R
+
+#' Map Module UI
+#'
+#' @param id A character string. The namespace ID.
+#' @return A UI definition.
+mapUI <- function(id) {
+  ns <- NS(id)
+  leafletOutput(ns("wastewater_map"), height = "500px")
+}
+
+#' Map Module Server
+#'
+#' @param id A character string. The namespace ID.
+#' @param data A reactive expression returning the data for the map.
+#' @param registry A link_registry object for managing component linking.
+mapServer <- function(id, data, registry) {
+  moduleServer(id, function(input, output, session) {
+
+    # Register this component with the central registry
+    register_leaflet(
+      session = session, # <-- Pass the module's session for namespacing
+      registry = registry,
+      leaflet_output_id = "wastewater_map", # <-- The local ID within this module
+      data_reactive = data,
+      shared_id_column = "id"
+    )
+
+    output$wastewater_map <- renderLeaflet({
+      # ... leaflet rendering logic ...
+    })
+  })
+}
+```
+
+---
+
+### Step 2: Create the Table Module (`table_module.R`)
+
+We do the same thing for our table module. It also accepts the `registry` and registers its own `DT` output.
+
+```{r table-module}
+# /path/to/your/app/table_module.R
+
+#' Table Module UI
+#'
+#' @param id A character string. The namespace ID.
+#' @return A UI definition.
+tableUI <- function(id) {
+  ns <- NS(id)
+  DTOutput(ns("wastewater_table"))
+}
+
+#' Table Module Server
+#'
+#' @param id A character string. The namespace ID.
+#' @param data A reactive expression returning the data for the table.
+#' @param registry A link_registry object for managing component linking.
+tableServer <- function(id, data, registry) {
+  moduleServer(id, function(input, output, session) {
+
+    # Register this component with the central registry
+    register_dt(
+      session = session, # <-- Pass the module's session
+      registry = registry,
+      dt_output_id = "wastewater_table", # <-- The local ID
+      data_reactive = data,
+      shared_id_column = "id"
+    )
+
+    output$wastewater_table <- renderDT({
+      # ... datatable rendering logic ...
+    })
+  })
+}
+```
+
+---
+
+### Step 3: Assemble the Main App (`app.R`)
+
+Finally, the main app ties everything together. Notice how clean the server logic is. It's only responsible for creating the registry and passing it to the modules. It has no knowledge of the internal component IDs (`"wastewater_map"` or `"wastewater_table"`).
+
+```{r main-app}
+# /path/to/your/app/app.R
+
+library(shiny)
+library(leaflet)
+library(DT)
+library(linkeR)
+
+# Source the modules
+source("map_module.R")
+source("table_module.R")
+
+# --- UI ---
+ui <- fluidPage(
+  titlePanel("linkeR Modular Linking Example"),
+  fluidRow(
+    column(7,
+      h4("Wastewater Map (Module 1)"),
+      mapUI("map_module")
+    ),
+    column(5,
+      h4("Facility Data (Module 2)"),
+      tableUI("table_module")
+    )
+  )
+)
+
+# --- Server ---
+server <- function(input, output, session) {
+
+  # --- 1. Create the central link registry ---
+  registry <- create_link_registry(session)
+
+  # Shared reactive data
+  wastewater_data <- reactive({
+    # ... data generation logic ...
+  })
+
+  # --- 2. Pass the registry to each module server ---
+  mapServer("map_module", wastewater_data, registry)
+  tableServer("table_module", wastewater_data, registry)
+}
+
+shinyApp(ui, server)
+```
+
+This pattern ensures that your modules remain self-contained and reusable while allowing `linkeR` to correctly identify and link components across your entire application.

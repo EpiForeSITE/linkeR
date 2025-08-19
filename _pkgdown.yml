@@ -53,6 +53,11 @@ articles:
   contents:
   - getting-started
 
+- title: "Using with Shiny Modules"
+  navbar: ~
+  contents:
+  - using-with-modules
+
 - title: "Advanced Usage"
   navbar: ~
   contents:

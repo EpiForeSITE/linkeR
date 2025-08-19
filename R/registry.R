@@ -11,10 +11,10 @@
 #'
 #' @return A link_registry object with the following methods:
 #' \describe{
-#'   \item{register_component(module_session, component_id, type, data_reactive, shared_id_column, config)}{
+#'   \item{register_component(session, component_id, type, data_reactive, shared_id_column, config)}{
 #'     Register a new component with the registry. Parameters:
 #'     \itemize{
-#'       \item module_session: Shiny session object for namespacing. Can be global session in non-modular apps.
+#'       \item session: Shiny session object for namespacing. Can be global session in non-modular apps.
 #'       \item component_id: Unique string identifier for the component
 #'       \item type: Component type (e.g., "table", "plot")
 #'       \item data_reactive: Reactive expression returning the component's data
@@ -64,6 +64,9 @@ create_link_registry <- function(session, on_selection_change = NULL) {
     stop("session argument is required")
   }
 
+  # Capture the main app session with an unambiguous name
+  top_level_session <- session
+
   # Private registry state
   components <- list()
   shared_state <- shiny::reactiveValues()
@@ -72,7 +75,7 @@ create_link_registry <- function(session, on_selection_change = NULL) {
   # Registry methods
   registry <- list(
     # Register a new component
-    register_component = function(module_session, component_id, type, data_reactive,
+    register_component = function(session, component_id, type, data_reactive,
                                   shared_id_column, config = list()) {
       # Validation
       if (!is.character(component_id) || length(component_id) != 1) {
@@ -85,8 +88,7 @@ create_link_registry <- function(session, on_selection_change = NULL) {
         stop("shared_id_column must be a string")
       }
 
-      # get the namespaced id if module_session is provided
-      namespaced_id <- module_session$ns(component_id)
+      namespaced_id <- session$ns(component_id)
 
       # Destroy existing observers for this component if they exist
       if (namespaced_id %in% names(observers)) {
@@ -107,7 +109,7 @@ create_link_registry <- function(session, on_selection_change = NULL) {
 
       # Set up component-specific observers and store them
       observers[[namespaced_id]] <<- setup_component_observers(
-        namespaced_id, type, session, components, shared_state, on_selection_change,
+        namespaced_id, type, top_level_session, components, shared_state, on_selection_change,
         registry = list(set_selection = registry$set_selection)
       )
 

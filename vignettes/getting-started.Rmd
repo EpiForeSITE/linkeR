@@ -117,6 +117,7 @@ For linking to work, you need:
 
 # Next Steps
 
+- See `vignette("using-with-modules")` for modular applications
 - See `vignette("custom-behaviors")` for advanced customization
 - See `vignette("multiple-components")` for complex linking scenarios
 - See `vignette("troubleshooting")` for common issues and solutions
