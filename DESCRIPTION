@@ -6,9 +6,12 @@ Authors@R:
            comment = c(ORCID = "0009-0000-5053-2281")),
     person("Centers for Disease Control and Prevention's Center for Forecasting and Outbreak Analytics",
         role="fnd", comment = "Cooperative agreement CDC-RFA-FT-23-0069"))
-Description: Provides a simple interface to create bidirectional links between 
-    interactive plots and tables in Shiny applications, supporting components like
-    Leaflet maps and DT tables.
+Description: Build powerful, linked-view dashboards in 'Shiny' applications. With a 
+    declarative, one-line setup, you can create bidirectional links between 
+    interactive components. When a user interacts with one element (e.g., clicking 
+    a map marker), all linked components (such as 'DT' tables or other charts) 
+    instantly update. Supports 'leaflet' maps, 'DT' tables, and spatial data 
+    via 'sf' objects out-of-the-box, with an extensible API for custom components.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
