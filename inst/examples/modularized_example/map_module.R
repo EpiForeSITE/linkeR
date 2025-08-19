@@ -13,8 +13,18 @@ mapUI <- function(id) {
 #'
 #' @param id A character string. The namespace ID.
 #' @param data A reactive expression returning the data frame for the map.
-mapServer <- function(id, data) {
+#' @param registry A link_registry object for managing component linking.
+mapServer <- function(id, data, registry) {
   moduleServer(id, function(input, output, session) {
+    # Register this component with the central registry
+    register_leaflet(
+      module_session = session, # <-- pass the module's session
+      registry = registry,
+      leaflet_output_id = "wastewater_map", # <-- the local ID
+      data_reactive = data,
+      shared_id_column = "id"
+    )
+
     output$wastewater_map <- renderLeaflet({
       map_data <- data()
       

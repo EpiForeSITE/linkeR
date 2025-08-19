@@ -97,45 +97,15 @@ server <- function(input, output, session) {
     generate_wastewater_data()
   })
   
-  # Store registry in reactiveVal to manage it properly
-  current_registry <- reactiveVal(NULL)
+  # Create the link registry
+  registry <- create_link_registry(session)
 
   # Call module servers
-  mapServer("map_module", wastewater_data)
-  tableServer("table_module", wastewater_data)
-  
-  # print columns of wastewater_data
-  observe({
-    print(colnames(wastewater_data()))
-  })
-
-  observeEvent(session$clientData, {
-      registry <- link_plots(
-        session,
-        shared_id_column = "id",
-        map_module_wastewater_map = wastewater_data,
-        table_module_wastewater_table = wastewater_data,
-        leaflet_click_handler = function(input, output, session, id) {
-          # Handle leaflet click events
-          selected_id <- input$map_module_wastewater_map_marker_click$id
-          print(paste("Selected ID from map:", selected_id))
-          if (!is.null(selected_id)) {
-            # Update the selection in the registry
-            registry$set_selection(selected_id, "map_module")
-          }
-        },
-        on_selection_change = function(selected_id, source) {
-          print(paste("Selection changed to ID:", selected_id, "from source:", source))
-        }
-      )
-
-      current_registry(registry)
-  }, once = TRUE)
-
+  mapServer("map_module", wastewater_data, registry)
+  tableServer("table_module", wastewater_data, registry)
   
   # Selection info display
   output$selection_info <- renderText({
-    registry <- current_registry()
     if (!is.null(registry)) {
       selection <- registry$get_selection()
       if (!is.null(selection$selected_id)) {
