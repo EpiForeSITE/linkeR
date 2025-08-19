@@ -324,7 +324,12 @@ update_leaflet_selection <- function(component_id, selected_id, session, compone
       original_data <- component_info$config$original_data_reactive()
 
       if (inherits(original_data, "sf")) {
-
+        # require sf namespace for coordinate extraction
+        if (!requireNamespace("sf", quietly = TRUE)) {
+          warning("sf package is required for handling sf objects in leaflet linking")
+          return()
+        }
+        
         # Add coordinates to original data for handlers
         coords <- sf::st_coordinates(original_data)
         original_data$longitude <- coords[, 1]
