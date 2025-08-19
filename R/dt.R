@@ -2,7 +2,7 @@
 #'
 #' `register_dt` registers a DT datatable for linking with other components.
 #'
-#' @param module_session Shiny session object. The session from the module where the DT is used. This could be global session in non-modular apps.
+#' @param session Shiny session object. The session from the module where the DT is used. This could be global session in non-modular apps.
 #' @param registry A link registry created by \code{create_link_registry()}
 #' @param dt_output_id Character string: the outputId of your DT::DTOutput
 #' @param data_reactive Reactive expression returning the data frame for the table
@@ -28,12 +28,12 @@
 #'   })
 #'
 #'   # Register a DT component
-#'   register_dt(registry, "my_table", my_data, "id")
+#'   register_dt(session, registry, "my_table", my_data, "id")
 #'
 #'   # Verify registration
 #'   print(registry$get_components())
 #' }
-register_dt <- function(module_session, registry, dt_output_id, data_reactive, shared_id_column,
+register_dt <- function(session, registry, dt_output_id, data_reactive, shared_id_column,
                         click_handler = NULL) {
   # Check if DT is available
   if (!requireNamespace("DT", quietly = TRUE)) {
@@ -54,7 +54,7 @@ register_dt <- function(module_session, registry, dt_output_id, data_reactive, s
 
   # Register with the registry
   registry$register_component(
-    module_session = module_session,
+    session = session,
     component_id = dt_output_id,
     type = "datatable",
     data_reactive = data_reactive,

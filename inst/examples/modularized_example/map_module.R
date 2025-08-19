@@ -18,7 +18,7 @@ mapServer <- function(id, data, registry) {
   moduleServer(id, function(input, output, session) {
     # Register this component with the central registry
     register_leaflet(
-      module_session = session, # <-- pass the module's session
+      session = session, # <-- pass the module's session
       registry = registry,
       leaflet_output_id = "wastewater_map", # <-- the local ID
       data_reactive = data,

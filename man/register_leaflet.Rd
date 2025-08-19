@@ -5,7 +5,7 @@
 \title{Register a Leaflet Component}
 \usage{
 register_leaflet(
-  module_session,
+  session,
   registry,
   leaflet_output_id,
   data_reactive,
@@ -17,7 +17,7 @@ register_leaflet(
 )
 }
 \arguments{
-\item{module_session}{Shiny session object. The session from the module where the DT is used. This could be global session in non-modular apps.}
+\item{session}{Shiny session object. The session from the module where the DT is used. This could be global session in non-modular apps.}
 
 \item{registry}{A link registry created by \code{create_link_registry()}}
 

@@ -152,7 +152,7 @@ link_plots <- function(session, ..., shared_id_column,
         lat_col = leaflet_lat_col,
         highlight_zoom = 12,
         click_handler = leaflet_click_handler,
-        module_session = session  # this is just the global session in the case of single file applications
+        session = session  # this is just the global session in the case of single file applications
       )
       
     } else if (comp_type == "datatable") {
@@ -171,7 +171,7 @@ link_plots <- function(session, ..., shared_id_column,
         data_reactive = comp_data,
         shared_id_column = shared_id_column,
         click_handler = dt_click_handler,
-        module_session = session  # this is just the global session in the case of single file applications
+        session = session  # this is just the global session in the case of single file applications
       )
     }
   }

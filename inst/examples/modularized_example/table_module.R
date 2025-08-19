@@ -18,7 +18,7 @@ tableServer <- function(id, data, registry) {
   moduleServer(id, function(input, output, session) {
     # Register this component with the central registry
     register_dt(
-      module_session = session, # <-- pass the module's session
+      session = session, # <-- pass the module's session
       registry = registry,
       dt_output_id = "wastewater_table", # <-- the local ID
       data_reactive = data,

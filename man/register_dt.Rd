@@ -5,7 +5,7 @@
 \title{Register a DT DataTable Component}
 \usage{
 register_dt(
-  module_session,
+  session,
   registry,
   dt_output_id,
   data_reactive,
@@ -14,7 +14,7 @@ register_dt(
 )
 }
 \arguments{
-\item{module_session}{Shiny session object. The session from the module where the DT is used. This could be global session in non-modular apps.}
+\item{session}{Shiny session object. The session from the module where the DT is used. This could be global session in non-modular apps.}
 
 \item{registry}{A link registry created by \code{create_link_registry()}}
 
@@ -50,7 +50,7 @@ NULL (invisible). This function is called for its side effects of registering th
   })
 
   # Register a DT component
-  register_dt(registry, "my_table", my_data, "id")
+  register_dt(session, registry, "my_table", my_data, "id")
 
   # Verify registration
   print(registry$get_components())
