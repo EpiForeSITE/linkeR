@@ -2,6 +2,7 @@
 #'
 #' `register_leaflet` registers a Leaflet map for linking with other components.
 #'
+#' @param module_session Shiny session object. The session from the module where the DT is used. This could be global session in non-modular apps.
 #' @param registry A link registry created by \code{create_link_registry()}
 #' @param leaflet_output_id Character string: the outputId of your leafletOutput
 #' @param data_reactive Reactive expression returning the data frame for the map
@@ -35,7 +36,7 @@
 #'   # Verify registration
 #'   print(registry$get_components())
 #' }
-register_leaflet <- function(registry, leaflet_output_id, data_reactive,
+register_leaflet <- function(module_session, registry, leaflet_output_id, data_reactive,
                              shared_id_column, lng_col = "longitude",
                              lat_col = "latitude", highlight_zoom = 12,
                              click_handler = NULL) {
@@ -79,6 +80,7 @@ register_leaflet <- function(registry, leaflet_output_id, data_reactive,
 
   # Register with the registry using processed data
   registry$register_component(
+    module_session = module_session,
     component_id = leaflet_output_id,
     type = "leaflet",
     data_reactive = processed_data_reactive,
