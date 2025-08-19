@@ -30,7 +30,7 @@ setup_datatable_observers(
 NULL. This function is called for its side effects of setting up observers.
 }
 \description{
-Sets up reactive observers for a DataTable component to handle user interactions
+\code{setup_datatable_observers} Sets up reactive observers for a DataTable component to handle user interactions
 and state changes. This function establishes the necessary event handlers for
 selection changes and synchronizes the component with the shared application state.
 }

@@ -1,6 +1,6 @@
 #' Simple Plot Linking Function
 #'
-#' @description A simple interface to link interactive plots and tables in Shiny.
+#' `link_plots` is a simple interface to link interactive plots and tables in Shiny.
 #' This function automatically detects component types and sets up bidirectional linking.
 #' For more robust applications, especially with complex naming schemes, consider using
 #' \code{\link{register_leaflet}} and \code{\link{register_dt}} directly.
@@ -27,40 +27,57 @@
 #' @return Invisibly returns the created registry object
 #' @export
 #' @examples
-#' \dontrun{
-#' # Basic usage with default behaviors
-#' link_plots(
-#'   session,
-#'   myMap = reactive({
-#'     map_data
-#'   }),
-#'   myTable = reactive({
-#'     table_data
-#'   }),
-#'   shared_id_column = "location_id"
-#' )
+#' if (interactive()) {
+#'   library(shiny)
+#'   library(leaflet)
+#'   library(DT)
 #'
-#' # With custom leaflet click behavior
-#' link_plots(
-#'   session,
-#'   myMap = reactive({
-#'     map_data
-#'   }),
-#'   myTable = reactive({
-#'     table_data
-#'   }),
-#'   shared_id_column = "location_id",
-#'   leaflet_click_handler = function(map_proxy, selected_data, session) {
-#'     # Custom popup and zoom behavior
-#'     map_proxy %>%
-#'       leaflet::setView(lng = selected_data$longitude, lat = selected_data$latitude, zoom = 15) %>%
-#'       leaflet::addPopups(
-#'         lng = selected_data$longitude,
-#'         lat = selected_data$latitude,
-#'         popup = paste0("<b>", selected_data$name, "</b><br>Custom info here")
-#'       )
+#'   # Sample data
+#'   sample_data <- data.frame(
+#'     id = 1:10,
+#'     name = paste("Location", 1:10),
+#'     latitude = runif(10, 40.7, 40.8),
+#'     longitude = runif(10, -111.95, -111.85),
+#'     value = round(runif(10, 100, 1000))
+#'   )
+#'
+#'   ui <- fluidPage(
+#'     titlePanel("linkeR Example"),
+#'     fluidRow(
+#'       column(6, leafletOutput("my_map")),
+#'       column(6, DTOutput("my_table"))
+#'     )
+#'   )
+#'
+#'   server <- function(input, output, session) {
+#'     my_data <- reactive({
+#'       sample_data
+#'     })
+#'
+#'     output$my_map <- renderLeaflet({
+#'       leaflet(my_data()) %>%
+#'         addTiles() %>%
+#'         addMarkers(
+#'           lng = ~longitude,
+#'           lat = ~latitude,
+#'           layerId = ~id,
+#'           popup = ~name
+#'         )
+#'     })
+#'
+#'     output$my_table <- renderDT({
+#'       datatable(my_data()[, c("name", "value")], selection = "single")
+#'     })
+#'
+#'     link_plots(
+#'       session,
+#'       my_map = my_data,
+#'       my_table = my_data,
+#'       shared_id_column = "id"
+#'     )
 #'   }
-#' )
+#'
+#'   shinyApp(ui, server)
 #' }
 link_plots <- function(session, ..., shared_id_column,
                        leaflet_lng_col = "longitude",
@@ -153,6 +170,37 @@ link_plots <- function(session, ..., shared_id_column,
   invisible(registry)
 }
 
+#' Detect Component Type Based on Output ID Patterns
+#'
+#' `detect_component_type` is an internal function that attempts to automatically determine the type of
+#' Shiny output component based on common naming patterns in the component ID.
+#' This function uses simple heuristics to classify components as either
+#' "leaflet" (for maps) or "datatable" (for tables), with "datatable" as the
+#' default fallback.
+#'
+#' @param component_id Character string. The ID of the output component to classify.
+#' @param data_reactive Reactive data object (currently unused in the function logic).
+#'
+#' @return Character string indicating the detected component type:
+#'   \itemize{
+#'     \item "leaflet" - for IDs containing "map" or "leaflet"
+#'     \item "datatable" - for IDs containing "table" or "dt", or as default
+#'   }
+#'
+#' @details
+#' The function uses case-insensitive pattern matching on the component ID:
+#' \itemize{
+#'   \item IDs containing "map" or "leaflet" are classified as "leaflet"
+#'   \item IDs containing "table" or "dt" are classified as "datatable"
+#'   \item All other IDs default to "datatable" with a warning message
+#' }
+#'
+#' @note
+#' This is an internal function that provides basic auto-detection capabilities.
+#' For more precise control over component types, use the explicit register_*
+#' functions instead.
+#'
+#' @keywords internal
 # Internal function to detect component type based on output ID patterns
 detect_component_type <- function(component_id, data_reactive) {
   # Simple heuristic based on common naming patterns

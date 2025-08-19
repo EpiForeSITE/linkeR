@@ -1,6 +1,6 @@
 #' Create a Link Registry for Shiny Component Coordination
 #'
-#' Creates a registry system that manages linked interactions between multiple
+#' `create_link_registry` creates a registry system that manages linked interactions between multiple
 #' Shiny components, allowing them to share selection state and coordinate
 #' their behavior.
 #'
@@ -40,6 +40,7 @@
 #' Components are automatically cleaned up when re-registered to prevent
 #' memory leaks from orphaned observers.
 #'
+#' @export
 #' @examples
 #' \dontrun{
 #' # In your Shiny server function
@@ -210,7 +211,7 @@ create_link_registry <- function(session, on_selection_change = NULL) {
 
 #' Set up observers for different component types
 #'
-#' This internal function creates and configures observers for different types of
+#' `setup_component_observers` is an internal function that creates and configures observers for different types of
 #' interactive components based on the specified component type. It acts as a
 #' dispatcher that calls the appropriate setup function for each supported component.
 #'

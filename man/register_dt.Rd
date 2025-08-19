@@ -23,6 +23,33 @@ register_dt(
 
 \item{click_handler}{Optional function: custom click handler for row selection}
 }
+\value{
+NULL (invisible). This function is called for its side effects of registering the component.
+}
 \description{
-Register a DT datatable for linking with other components.
+\code{register_dt} registers a DT datatable for linking with other components.
+}
+\examples{
+\dontrun{
+  # Create a mock session for the example
+  session <- shiny::MockShinySession$new()
+
+  # Create a registry
+  registry <- create_link_registry(session)
+
+  # Sample reactive data
+  my_data <- shiny::reactive({
+    data.frame(
+      id = 1:5,
+      name = c("A", "B", "C", "D", "E"),
+      value = 11:15
+    )
+  })
+
+  # Register a DT component
+  register_dt(registry, "my_table", my_data, "id")
+
+  # Verify registration
+  print(registry$get_components())
+}
 }

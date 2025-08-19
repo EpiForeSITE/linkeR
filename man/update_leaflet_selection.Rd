@@ -22,7 +22,7 @@ and config settings.}
 NULL (invisibly). The function is called for its side effects on the Leaflet map.
 }
 \description{
-Updates a Leaflet map component to reflect a new selection state. This function
+\code{update_leaflet_selection} updates a Leaflet map component to reflect a new selection state. This function
 handles both selection and deselection events, applying either custom user-defined
 click handlers or default behaviors.
 }
@@ -46,4 +46,13 @@ Required columns in the component data:
 \note{
 If the leaflet package is not available, the function returns early without error.
 Missing required columns will generate a warning and cause early return.
+}
+\examples{
+\dontrun{
+# Update the map with a new selection
+update_leaflet_selection("my_map", "selected_id", session, components)
+#' # Deselect the map
+update_leaflet_selection("my_map", NULL, session, components)
+}
+
 }

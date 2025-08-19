@@ -33,5 +33,30 @@ register_leaflet(
 \item{click_handler}{Optional function: custom click handler for row selection}
 }
 \description{
-Register a Leaflet map for linking with other components.
+\code{register_leaflet} registers a Leaflet map for linking with other components.
+}
+\examples{
+\dontrun{
+  # Create a mock session for the example
+  session <- shiny::MockShinySession$new()
+
+  # Create a registry
+  registry <- create_link_registry(session)
+
+  # Sample reactive data
+  my_data <- shiny::reactive({
+    data.frame(
+      id = 1:5,
+      name = c("A", "B", "C", "D", "E"),
+      longitude = -111.9 + runif(5, -0.1, 0.1),
+      latitude = 40.7 + runif(5, -0.1, 0.1)
+    )
+  })
+
+  # Register a leaflet component
+  register_leaflet(registry, "my_map", my_data, "id")
+
+  # Verify registration
+  print(registry$get_components())
+}
 }

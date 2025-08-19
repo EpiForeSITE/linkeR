@@ -22,8 +22,9 @@ generate_wastewater_sf_data <- function() {
   
   # Create sf point geometries from coordinates
   points <- sf::st_sfc(
-    purrr::map2(utah_locations$longitude, utah_locations$latitude, 
-                ~sf::st_point(c(.x, .y))),
+    lapply(seq_len(nrow(utah_locations)), function(i) {
+      sf::st_point(c(utah_locations$longitude[i], utah_locations$latitude[i]))
+    }),
     crs = 4326  # WGS84 coordinate reference system
   )
   

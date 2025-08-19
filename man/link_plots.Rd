@@ -47,45 +47,62 @@ Function should accept parameters: (selected_id, selected_data, source_component
 Invisibly returns the created registry object
 }
 \description{
-A simple interface to link interactive plots and tables in Shiny.
+\code{link_plots} is a simple interface to link interactive plots and tables in Shiny.
 This function automatically detects component types and sets up bidirectional linking.
 For more robust applications, especially with complex naming schemes, consider using
 \code{\link{register_leaflet}} and \code{\link{register_dt}} directly.
 }
 \examples{
-\dontrun{
-# Basic usage with default behaviors
-link_plots(
-  session,
-  myMap = reactive({
-    map_data
-  }),
-  myTable = reactive({
-    table_data
-  }),
-  shared_id_column = "location_id"
-)
+if (interactive()) {
+  library(shiny)
+  library(leaflet)
+  library(DT)
 
-# With custom leaflet click behavior
-link_plots(
-  session,
-  myMap = reactive({
-    map_data
-  }),
-  myTable = reactive({
-    table_data
-  }),
-  shared_id_column = "location_id",
-  leaflet_click_handler = function(map_proxy, selected_data, session) {
-    # Custom popup and zoom behavior
-    map_proxy \%>\%
-      leaflet::setView(lng = selected_data$longitude, lat = selected_data$latitude, zoom = 15) \%>\%
-      leaflet::addPopups(
-        lng = selected_data$longitude,
-        lat = selected_data$latitude,
-        popup = paste0("<b>", selected_data$name, "</b><br>Custom info here")
-      )
+  # Sample data
+  sample_data <- data.frame(
+    id = 1:10,
+    name = paste("Location", 1:10),
+    latitude = runif(10, 40.7, 40.8),
+    longitude = runif(10, -111.95, -111.85),
+    value = round(runif(10, 100, 1000))
+  )
+
+  ui <- fluidPage(
+    titlePanel("linkeR Example"),
+    fluidRow(
+      column(6, leafletOutput("my_map")),
+      column(6, DTOutput("my_table"))
+    )
+  )
+
+  server <- function(input, output, session) {
+    my_data <- reactive({
+      sample_data
+    })
+
+    output$my_map <- renderLeaflet({
+      leaflet(my_data()) \%>\%
+        addTiles() \%>\%
+        addMarkers(
+          lng = ~longitude,
+          lat = ~latitude,
+          layerId = ~id,
+          popup = ~name
+        )
+    })
+
+    output$my_table <- renderDT({
+      datatable(my_data()[, c("name", "value")], selection = "single")
+    })
+
+    link_plots(
+      session,
+      my_map = my_data,
+      my_table = my_data,
+      shared_id_column = "id"
+    )
   }
-)
+
+  shinyApp(ui, server)
 }
 }

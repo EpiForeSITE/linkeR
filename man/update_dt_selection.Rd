@@ -20,7 +20,7 @@ data reactives, shared ID columns, and optional custom click handlers.}
 NULL (invisible). Function is called for side effects only.
 }
 \description{
-Updates the selection state of a DataTable (DT) component when a shared ID
+\code{update_dt_selection} Updates the selection state of a DataTable (DT) component when a shared ID
 is selected or deselected from another linked component. This function handles
 both custom click handlers and default selection behavior.
 }

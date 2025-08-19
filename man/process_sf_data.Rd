@@ -17,7 +17,7 @@ process_sf_data(data, lng_col = "longitude", lat_col = "latitude")
 Data frame with explicit lng/lat columns, ready for leaflet integration
 }
 \description{
-Helper function to extract coordinates from an sf object or ensure lng/lat columns exist in a data frame.
+\code{process_sf_data} is a helper function to extract coordinates from an sf object or ensure lng/lat columns exist in a data frame.
 }
 \details{
 This function handles three scenarios:
@@ -36,14 +36,21 @@ For sf objects, the function:
 }
 }
 \examples{
-\dontrun{
-# Process sf object
-sf_data <- sf::st_read("path/to/shapefile.shp")
-processed <- process_sf_data(sf_data, "lon", "lat")
+if (requireNamespace("sf", quietly = TRUE)) {
+  # Create a sample sf object
+  sf_data <- sf::st_as_sf(
+    data.frame(
+      id = 1:2,
+      name = c("A", "B"),
+      geom = c("POINT(-111.9 40.7)", "POINT(-111.8 40.6)")
+    ),
+    wkt = "geom",
+    crs = 4326
+  )
 
-# Regular data frame passes through unchanged
-regular_df <- data.frame(id = 1:3, longitude = c(-74, -75, -76), latitude = c(40, 41, 42))
-processed <- process_sf_data(regular_df, "longitude", "latitude")
+  # Process the sf object
+  processed_data <- process_sf_data(sf_data)
+  print(processed_data)
 }
 
 }

@@ -1,13 +1,37 @@
 #' Register a DT DataTable Component
 #'
-#' Register a DT datatable for linking with other components.
+#' `register_dt` registers a DT datatable for linking with other components.
 #'
 #' @param registry A link registry created by \code{create_link_registry()}
 #' @param dt_output_id Character string: the outputId of your DT::DTOutput
 #' @param data_reactive Reactive expression returning the data frame for the table
 #' @param shared_id_column Character string: name of the ID column
 #' @param click_handler Optional function: custom click handler for row selection
+#' @returns NULL (invisible). This function is called for its side effects of registering the component.
 #' @export
+#' @examples
+#' \dontrun{
+#'   # Create a mock session for the example
+#'   session <- shiny::MockShinySession$new()
+#'
+#'   # Create a registry
+#'   registry <- create_link_registry(session)
+#'
+#'   # Sample reactive data
+#'   my_data <- shiny::reactive({
+#'     data.frame(
+#'       id = 1:5,
+#'       name = c("A", "B", "C", "D", "E"),
+#'       value = 11:15
+#'     )
+#'   })
+#'
+#'   # Register a DT component
+#'   register_dt(registry, "my_table", my_data, "id")
+#'
+#'   # Verify registration
+#'   print(registry$get_components())
+#' }
 register_dt <- function(registry, dt_output_id, data_reactive, shared_id_column,
                         click_handler = NULL) {
   # Check if DT is available
@@ -42,7 +66,7 @@ register_dt <- function(registry, dt_output_id, data_reactive, shared_id_column,
 # Implementation of DT-specific observers (internal function)
 #' Setup DataTable Observers
 #'
-#' Sets up reactive observers for a DataTable component to handle user interactions
+#' `setup_datatable_observers` Sets up reactive observers for a DataTable component to handle user interactions
 #' and state changes. This function establishes the necessary event handlers for
 #' selection changes and synchronizes the component with the shared application state.
 #'
@@ -155,7 +179,7 @@ setup_datatable_observers <- function(component_id, session, components, shared_
 # Simplify update_dt_selection back to basic version:
 #' Update DT Selection Based on Shared ID
 #'
-#' Updates the selection state of a DataTable (DT) component when a shared ID
+#' `update_dt_selection` Updates the selection state of a DataTable (DT) component when a shared ID
 #' is selected or deselected from another linked component. This function handles
 #' both custom click handlers and default selection behavior.
 #'
