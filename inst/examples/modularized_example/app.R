@@ -97,8 +97,12 @@ server <- function(input, output, session) {
     generate_wastewater_data()
   })
   
+  on_selection_change <- function(selected_id, selected_data, source, session) {
+    message("Selection changed to ID: ", selected_id, " from: ", source)
+  }
+
   # Create the link registry
-  registry <- create_link_registry(session)
+  registry <- create_link_registry(session, on_selection_change = on_selection_change)
 
   # Call module servers
   mapServer("map_module", wastewater_data, registry)
