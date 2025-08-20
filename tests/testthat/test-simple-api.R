@@ -1,5 +1,5 @@
 test_that("link_plots validates inputs", {
-  session <- list(input = list())
+  session <- shiny::MockShinySession$new()
 
   # Test missing session
   expect_error(
@@ -40,7 +40,7 @@ test_that("component type detection works", {
 })
 
 test_that("link_plots creates registry with components", {
-  session <- list(input = list())
+  session <- shiny::MockShinySession$new()
 
   # Create test data
   map_data <- reactive({
@@ -77,15 +77,12 @@ test_that("link_plots creates registry with components", {
   # Check components were registered
   components <- registry$get_components()
   expect_length(components, 2)
-  expect_true("testMap" %in% names(components))
-  expect_true("testTable" %in% names(components))
+  expect_true("mock-session-testMap" %in% names(components))
+  expect_true("mock-session-testTable" %in% names(components))
 })
 
 test_that("link_plots works with 3 components", {
-  session <- list(
-    input = list(),
-    onSessionEnded = function(callback) callback
-  )
+  session <- shiny::MockShinySession$new()
 
   # Create mock reactive data for three components
   data1 <- reactive({
@@ -116,9 +113,9 @@ test_that("link_plots works with 3 components", {
   expect_s3_class(registry, "link_registry")
   components <- registry$get_components()
   expect_length(components, 3)
-  expect_true("table1" %in% names(components))
-  expect_true("table2" %in% names(components))
-  expect_true("table3" %in% names(components))
+  expect_true("mock-session-table1" %in% names(components))
+  expect_true("mock-session-table2" %in% names(components))
+  expect_true("mock-session-table3" %in% names(components))
 
   # Check shared_id_column is consistent
   expect_equal(
@@ -136,10 +133,7 @@ test_that("link_plots works with 3 components", {
 })
 
 test_that("link_plots handles edge cases correctly", {
-  session <- list(
-    input = list(),
-    onSessionEnded = function(callback) callback
-  )
+  session <- shiny::MockShinySession$new()
 
   # Test with single component (should not work)
   single_data <- reactive({
@@ -169,10 +163,7 @@ test_that("link_plots handles edge cases correctly", {
 })
 
 test_that("link_plots validates shared_id_column across all datasets", {
-  session <- list(
-    input = list(),
-    onSessionEnded = function(callback) callback
-  )
+  session <- shiny::MockShinySession$new()
 
   # Data with shared ID column
   good_data <- reactive({
@@ -197,11 +188,7 @@ test_that("link_plots validates shared_id_column across all datasets", {
 })
 
 test_that("link_plots handles different data types in shared column", {
-  session <- list(
-    input = list(),
-    onSessionEnded = function(callback) callback
-  )
-
+  session <- shiny::MockShinySession$new()
   # Test with character IDs
   char_data <- reactive({
     data.frame(
@@ -252,10 +239,7 @@ test_that("link_plots handles different data types in shared column", {
 })
 
 test_that("link_plots custom handlers are properly stored", {
-  session <- list(
-    input = list(),
-    onSessionEnded = function(callback) callback
-  )
+  session <- shiny::MockShinySession$new()
 
   test_data <- reactive({
     data.frame(
@@ -289,11 +273,11 @@ test_that("link_plots custom handlers are properly stored", {
   components <- registry$get_components()
 
   # Check leaflet handler
-  map_component <- components[["test_map"]]
+  map_component <- components[["mock-session-test_map"]]
   expect_true(is.function(map_component$config$click_handler))
 
   # Check DT handler
-  table_component <- components[["test_table"]]
+  table_component <- components[["mock-session-test_table"]]
   expect_true(is.function(table_component$config$click_handler))
 
   # Check the click behavior
@@ -309,10 +293,7 @@ test_that("link_plots custom handlers are properly stored", {
 })
 
 test_that("link_plots on_selection_change callback works", {
-  session <- list(
-    input = list(),
-    onSessionEnded = function(callback) callback
-  )
+  session <- shiny::MockShinySession$new()
 
   test_data <- reactive({
     data.frame(id = 1:3, name = c("A", "B", "C"))

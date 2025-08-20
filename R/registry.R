@@ -161,7 +161,7 @@ create_link_registry <- function(session, on_selection_change = NULL) {
 
         tryCatch(
           {
-            on_selection_change(selected_id, selected_data, source_component_id, session)
+            on_selection_change(selected_id, selected_data, source_component_id, top_level_session)
           },
           error = function(e) {
             warning("Error in on_selection_change callback: ", e$message)

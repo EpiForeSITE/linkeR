@@ -3,10 +3,7 @@
 
 test_that("register_dt validates input", {
   # Mock session and registry
-  session <- list(
-    input = list(),
-    onSessionEnded = function(callback) callback
-  )
+  session <- shiny::MockShinySession$new()
   registry <- create_link_registry(session)
   
   # Test with valid inputs
@@ -15,39 +12,36 @@ test_that("register_dt validates input", {
   })
 
   expect_no_error({
-    register_dt(registry, "test_table", test_data, "id")
+    register_dt(session, registry, "test_table", test_data, "id")
   })
   
   # Test missing registry
   expect_error(
-    register_dt(NULL, "test_table", test_data, "id"),
+    register_dt(session, NULL, "test_table", test_data, "id"),
     "registry"
   )
 
   # Test missing dt_output_id
   expect_error(
-    register_dt(registry, NULL, test_data, "id"),
+    register_dt(session, registry, NULL, test_data, "id"),
     "dt_output_id must be a string"
   )
   
   # Test non-reactive data
   expect_error(
-    register_dt(registry, "test_table", data.frame(id = 1:3), "id"),
+    register_dt(session, registry, "test_table", data.frame(id = 1:3), "id"),
     "data_reactive must be a reactive expression"
   )
   
   # Test missing shared_id_column
   expect_error(
-    register_dt(registry, "test_table", test_data, NULL),
+    register_dt(session, registry, "test_table", test_data, NULL),
     "shared_id_column must be a string"
   )
 })
 
 test_that("register_dt creates proper component registration", {
-  session <- list(
-    input = list(),
-    onSessionEnded = function(callback) callback
-  )
+  session <- shiny::MockShinySession$new()
   registry <- create_link_registry(session)
   
   test_data <- reactive({
@@ -59,15 +53,15 @@ test_that("register_dt creates proper component registration", {
   })
 
   # Register the DT component
-  register_dt(registry, "business_table", test_data, "business_id")
+  register_dt(session=session, registry, "business_table", test_data, "business_id")
   
   # Check component was registered correctly
   components <- registry$get_components()
   expect_length(components, 1)
-  expect_true("business_table" %in% names(components))
+  expect_true("mock-session-business_table" %in% names(components))
   
   # Check component details
-  dt_component <- components[["business_table"]]
+  dt_component <- components[["mock-session-business_table"]]
   expect_equal(dt_component$type, "datatable")
   expect_equal(dt_component$shared_id_column, "business_id")
   expect_true(is.list(dt_component$config))
@@ -81,10 +75,7 @@ test_that("register_dt requires DT package", {
     # This test would need more sophisticated mocking
     skip("DT package is available, cannot test missing package scenario")
   } else {
-    session <- list(
-      input = list(),
-      onSessionEnded = function(callback) callback
-    )
+    session <- shiny::MockShinySession$new()
     registry <- create_link_registry(session)
     
     test_data <- reactive({
@@ -92,7 +83,7 @@ test_that("register_dt requires DT package", {
     })
     
     expect_error(
-      register_dt(registry, "test_table", test_data, "id"),
+      register_dt(session, registry, "test_table", test_data, "id"),
       "DT package is required"
     )
   }
@@ -102,13 +93,7 @@ test_that("setup_datatable_observers creates proper observers", {
   skip_if_not_installed("DT")
   skip_if_not_installed("later")
   
-  session <- list(
-    input = list(
-      test_table_rows_selected = NULL
-    ),
-    userData = list(),
-    onSessionEnded = function(callback) callback
-  )
+  session <- shiny::MockShinySession$new()
   
   # Mock reactive values for shared state
   shared_state <- shiny::reactiveValues(
@@ -161,13 +146,7 @@ test_that("DT observer handles session flag correctly", {
   skip_if_not_installed("DT")
   skip_if_not_installed("later")
   
-  session <- list(
-    input = list(
-      test_table_rows_selected = c(1)
-    ),
-    userData = list(),
-    onSessionEnded = function(callback) callback
-  )
+  session <- shiny::MockShinySession$new()
   
   # Mock reactive values
   shared_state <- shiny::reactiveValues(
@@ -223,11 +202,7 @@ test_that("DT observer handles session flag correctly", {
 test_that("DT handles different data types in shared column", {
   skip_if_not_installed("DT")
   
-  session <- list(
-    input = list(),
-    userData = list(),
-    onSessionEnded = function(callback) callback
-  )
+  session <- shiny::MockShinySession$new()
   
   registry <- create_link_registry(session)
   
@@ -241,7 +216,7 @@ test_that("DT handles different data types in shared column", {
   })
   
   expect_no_error({
-    register_dt(registry, "char_table", char_data, "business_id")
+    register_dt(session, registry, "char_table", char_data, "business_id")
   })
   
   # Test with numeric IDs
@@ -253,7 +228,7 @@ test_that("DT handles different data types in shared column", {
   })
   
   expect_no_error({
-    register_dt(registry, "numeric_table", numeric_data, "item_id")
+    register_dt(session, registry, "numeric_table", numeric_data, "item_id")
   })
   
   # Test with factor IDs
@@ -265,25 +240,21 @@ test_that("DT handles different data types in shared column", {
   })
   
   expect_no_error({
-    register_dt(registry, "factor_table", factor_data, "category_id")
+    register_dt(session, registry, "factor_table", factor_data, "category_id")
   })
   
   # Check all were registered
   components <- registry$get_components()
   expect_length(components, 3)
-  expect_true("char_table" %in% names(components))
-  expect_true("numeric_table" %in% names(components))
-  expect_true("factor_table" %in% names(components))
+  expect_true("mock-session-char_table" %in% names(components))
+  expect_true("mock-session-numeric_table" %in% names(components))
+  expect_true("mock-session-factor_table" %in% names(components))
 })
 
 test_that("DT integration with registry selection works", {
   skip_if_not_installed("DT")
   
-  session <- list(
-    input = list(),
-    userData = list(),
-    onSessionEnded = function(callback) callback
-  )
+  session <- shiny::MockShinySession$new()
   
   test_data <- reactive({
     data.frame(
@@ -305,7 +276,7 @@ test_that("DT integration with registry selection works", {
   }
   
   registry <- create_link_registry(session, on_selection_change = test_callback)
-  register_dt(registry, "test_table", test_data, "id")
+  register_dt(session, registry, "test_table", test_data, "id")
   
   # Test programmatic selection
   isolate(registry$set_selection("B", "test_source"))
