@@ -3,7 +3,7 @@
 #' `register_leaflet` registers a Leaflet map for linking with other components.
 #'
 #' @param session Shiny session object. The session from the module where the DT is used. This could be global session in non-modular apps.
-#' @param registry A link registry created by \code{create_link_registry()}
+#' @param registry A link registry created by [create_link_registry()]
 #' @param leaflet_output_id Character string: the outputId of your leafletOutput
 #' @param data_reactive Reactive expression returning the data frame for the map
 #' @param shared_id_column Character string: name of the ID column

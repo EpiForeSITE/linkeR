@@ -56,9 +56,9 @@ This function is the fastest way to get started with \code{linkeR} and is ideal
 for straightforward dashboards.
 
 For more complex applications that use \strong{Shiny Modules}, you should use the
-more robust pattern of creating a central registry with \code{create_link_registry()}
-and passing it to your modules, where you will call \code{register_leaflet()} or
-\code{register_dt()} directly. This preserves module encapsulation and leads to
+more robust pattern of creating a central registry with \code{\link[=create_link_registry]{create_link_registry()}}
+and passing it to your modules, where you will call \code{\link[=register_leaflet]{register_leaflet()}} or
+\code{\link[=register_dt]{register_dt()}} directly. This preserves module encapsulation and leads to
 more maintainable code. See the \code{modularized_example} for a complete example of this pattern.
 }
 \examples{

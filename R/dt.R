@@ -3,8 +3,8 @@
 #' `register_dt` registers a DT datatable for linking with other components.
 #'
 #' @param session Shiny session object. The session from the module where the DT is used. This could be global session in non-modular apps.
-#' @param registry A link registry created by \code{create_link_registry()}
-#' @param dt_output_id Character string: the outputId of your DT::DTOutput
+#' @param registry A link registry created by [create_link_registry()]
+#' @param dt_output_id Character string: the outputId of your [DT::DTOutput]
 #' @param data_reactive Reactive expression returning the data frame for the table
 #' @param shared_id_column Character string: name of the ID column
 #' @param click_handler Optional function: custom click handler for row selection

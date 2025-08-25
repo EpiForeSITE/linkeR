@@ -57,7 +57,7 @@
 #' registry$register_component("plot1", "plot", reactive(my_data), "id")
 #' }
 #'
-#' @seealso \code{\link{setup_component_observers}} for component observer setup
+#' @seealso [setup_component_observers()] for component observer setup
 create_link_registry <- function(session, on_selection_change = NULL) {
   # Validate inputs
   if (missing(session)) {

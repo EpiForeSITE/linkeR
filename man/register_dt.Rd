@@ -16,9 +16,9 @@ register_dt(
 \arguments{
 \item{session}{Shiny session object. The session from the module where the DT is used. This could be global session in non-modular apps.}
 
-\item{registry}{A link registry created by \code{create_link_registry()}}
+\item{registry}{A link registry created by \code{\link[=create_link_registry]{create_link_registry()}}}
 
-\item{dt_output_id}{Character string: the outputId of your DT::DTOutput}
+\item{dt_output_id}{Character string: the outputId of your \link[DT:dataTableOutput]{DT::DTOutput}}
 
 \item{data_reactive}{Reactive expression returning the data frame for the table}
 

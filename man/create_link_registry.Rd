@@ -68,5 +68,5 @@ registry$register_component("plot1", "plot", reactive(my_data), "id")
 
 }
 \seealso{
-\code{\link{setup_component_observers}} for component observer setup
+\code{\link[=setup_component_observers]{setup_component_observers()}} for component observer setup
 }

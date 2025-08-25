@@ -10,9 +10,9 @@
 #' for straightforward dashboards.
 #'
 #' For more complex applications that use **Shiny Modules**, you should use the
-#' more robust pattern of creating a central registry with `create_link_registry()`
-#' and passing it to your modules, where you will call `register_leaflet()` or
-#' `register_dt()` directly. This preserves module encapsulation and leads to
+#' more robust pattern of creating a central registry with [create_link_registry()]
+#' and passing it to your modules, where you will call [register_leaflet()] or
+#' [register_dt()] directly. This preserves module encapsulation and leads to
 #' more maintainable code. See the `modularized_example` for a complete example of this pattern.
 #'
 #' @param session The Shiny session object
