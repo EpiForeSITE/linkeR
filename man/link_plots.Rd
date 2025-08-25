@@ -2,7 +2,7 @@
 % Please edit documentation in R/simple_api.R
 \name{link_plots}
 \alias{link_plots}
-\title{Simple Plot Linking Function}
+\title{Simple Plot Linking Function for Non-Modular Shiny Apps}
 \usage{
 link_plots(
   session,
@@ -47,12 +47,23 @@ Function should accept parameters: (selected_id, selected_data, source_component
 Invisibly returns the created registry object
 }
 \description{
-\code{link_plots} is a simple interface to link interactive plots and tables in Shiny.
-This function automatically detects component types and sets up bidirectional linking.
-For more robust applications, especially with complex naming schemes, consider using
-\code{\link{register_leaflet}} and \code{\link{register_dt}} directly.
+\code{link_plots} provides a simple, one-line interface to link interactive
+components in a \strong{single-file or non-modular Shiny application}. It
+automatically detects component types and sets up bidirectional linking.
+}
+\details{
+This function is the fastest way to get started with \code{linkeR} and is ideal
+for straightforward dashboards.
+
+For more complex applications that use \strong{Shiny Modules}, you should use the
+more robust pattern of creating a central registry with \code{\link[=create_link_registry]{create_link_registry()}}
+and passing it to your modules, where you will call \code{\link[=register_leaflet]{register_leaflet()}} or
+\code{\link[=register_dt]{register_dt()}} directly. This preserves module encapsulation and leads to
+more maintainable code. See the \code{modularized_example} for a complete example of this pattern.
 }
 \examples{
+# This example is for a single-file app.
+# For modular apps, please see the "Using linkeR with Modules" vignette.
 if (interactive()) {
   library(shiny)
   library(leaflet)

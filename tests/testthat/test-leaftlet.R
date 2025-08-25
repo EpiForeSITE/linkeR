@@ -3,10 +3,7 @@
 
 test_that("register_leaflet validates inputs", {
   # Mock session and registry
-  session <- list(
-    input = list(),
-    onSessionEnded = function(callback) callback
-  )
+  session <- shiny::MockShinySession$new()
   registry <- create_link_registry(session)
   
   # Test with valid inputs
@@ -20,39 +17,37 @@ test_that("register_leaflet validates inputs", {
   })
 
   expect_no_error({
-    register_leaflet(registry, "test_map", test_data, "id")
+    register_leaflet(session, registry, "test_map", test_data, "id")
   })
   
   # Test missing registry
   expect_error(
-    register_leaflet(NULL, "test_map", test_data, "id"),
+    register_leaflet(session, NULL, "test_map", test_data, "id"),
     "registry"
   )
 
   # Test missing leaflet_output_id
   expect_error(
-    register_leaflet(registry, NULL, test_data, "id"),
+    register_leaflet(session, registry, NULL, test_data, "id"),
     "leaflet_output_id must be a string"
   )
   
   # Test non-reactive data
   expect_error(
-    register_leaflet(registry, "test_map", data.frame(id = 1:3), "id"),
+    register_leaflet(session, registry, "test_map", data.frame(id = 1:3), "id"),
     "data_reactive must be a reactive expression"
   )
   
   # Test missing shared_id_column
   expect_error(
-    register_leaflet(registry, "test_map", test_data, NULL),
+    register_leaflet(session, registry, "test_map", test_data, NULL),
     "shared_id_column must be a string"
   )
 })
 
 test_that("register_leaflet creates proper component registration", {
-  session <- list(
-    input = list(),
-    onSessionEnded = function(callback) callback
-  )
+  session <- shiny::MockShinySession$new()
+
   registry <- create_link_registry(session)
   
   test_data <- reactive({
@@ -66,6 +61,7 @@ test_that("register_leaflet creates proper component registration", {
 
   # Register the leaflet component with custom settings
   register_leaflet(
+    session,
     registry, 
     "business_map", 
     test_data, 
@@ -78,10 +74,10 @@ test_that("register_leaflet creates proper component registration", {
   # Check component was registered correctly
   components <- registry$get_components()
   expect_length(components, 1)
-  expect_true("business_map" %in% names(components))
+  expect_true("mock-session-business_map" %in% names(components))
   
   # Check component details
-  leaflet_component <- components[["business_map"]]
+  leaflet_component <- components[["mock-session-business_map"]]
   expect_equal(leaflet_component$type, "leaflet")
   expect_equal(leaflet_component$shared_id_column, "business_id")
   expect_true(is.list(leaflet_component$config))
@@ -96,10 +92,7 @@ test_that("register_leaflet creates proper component registration", {
 test_that("register_leaflet uses default column names", {
   skip_if_not_installed("leaflet")
   
-  session <- list(
-    input = list(),
-    onSessionEnded = function(callback) callback
-  )
+  session <- shiny::MockShinySession$new()
   registry <- create_link_registry(session)
   
   # Data with default column names
@@ -113,10 +106,10 @@ test_that("register_leaflet uses default column names", {
   })
 
   # Register without specifying column names (should use defaults)
-  register_leaflet(registry, "test_map", test_data, "id")
+  register_leaflet(session, registry, "test_map", test_data, "id")
   
   components <- registry$get_components()
-  leaflet_component <- components[["test_map"]]
+  leaflet_component <- components[["mock-session-test_map"]]
   
   # Should use default column names
   expect_equal(leaflet_component$config$lng_col, "longitude")
@@ -130,10 +123,7 @@ test_that("register_leaflet requires leaflet package", {
   if (requireNamespace("leaflet", quietly = TRUE)) {
     skip("leaflet package is available, cannot test missing package scenario")
   } else {
-    session <- list(
-      input = list(),
-      onSessionEnded = function(callback) callback
-    )
+    session <- shiny::MockShinySession$new()
     registry <- create_link_registry(session)
     
     test_data <- reactive({
@@ -145,7 +135,7 @@ test_that("register_leaflet requires leaflet package", {
     })
     
     expect_error(
-      register_leaflet(registry, "test_map", test_data, "id"),
+      register_leaflet(session, registry, "test_map", test_data, "id"),
       "leaflet package is required"
     )
   }
@@ -154,13 +144,7 @@ test_that("register_leaflet requires leaflet package", {
 test_that("setup_leaflet_observers creates proper observers", {
   skip_if_not_installed("leaflet")
   
-  session <- list(
-    input = list(
-      test_map_marker_click = NULL
-    ),
-    userData = list(),
-    onSessionEnded = function(callback) callback
-  )
+  session <- shiny::MockShinySession$new()
   
   # Mock reactive values for shared state
   shared_state <- shiny::reactiveValues(
@@ -252,11 +236,7 @@ test_that("apply_default_leaflet_behavior handles selection and deselection", {
 test_that("leaflet handles different data types in shared column", {
   skip_if_not_installed("leaflet")
   
-  session <- list(
-    input = list(),
-    userData = list(),
-    onSessionEnded = function(callback) callback
-  )
+  session <- shiny::MockShinySession$new()
   
   registry <- create_link_registry(session)
   
@@ -272,7 +252,7 @@ test_that("leaflet handles different data types in shared column", {
   })
   
   expect_no_error({
-    register_leaflet(registry, "char_map", char_data, "business_id")
+    register_leaflet(session, registry, "char_map", char_data, "business_id")
   })
   
   # Test with numeric IDs
@@ -286,7 +266,7 @@ test_that("leaflet handles different data types in shared column", {
   })
   
   expect_no_error({
-    register_leaflet(registry, "numeric_map", numeric_data, "item_id")
+    register_leaflet(session, registry, "numeric_map", numeric_data, "item_id")
   })
   
   # Test with factor IDs
@@ -300,25 +280,21 @@ test_that("leaflet handles different data types in shared column", {
   })
   
   expect_no_error({
-    register_leaflet(registry, "factor_map", factor_data, "category_id")
+    register_leaflet(session, registry, "factor_map", factor_data, "category_id")
   })
   
   # Check all were registered
   components <- registry$get_components()
   expect_length(components, 3)
-  expect_true("char_map" %in% names(components))
-  expect_true("numeric_map" %in% names(components))
-  expect_true("factor_map" %in% names(components))
+  expect_true("mock-session-char_map" %in% names(components))
+  expect_true("mock-session-numeric_map" %in% names(components))
+  expect_true("mock-session-factor_map" %in% names(components))
 })
 
 test_that("leaflet integration with registry selection works", {
   skip_if_not_installed("leaflet")
   
-  session <- list(
-    input = list(),
-    userData = list(),
-    onSessionEnded = function(callback) callback
-  )
+  session <- shiny::MockShinySession$new()
   
   test_data <- reactive({
     data.frame(
@@ -341,7 +317,7 @@ test_that("leaflet integration with registry selection works", {
   }
   
   registry <- create_link_registry(session, on_selection_change = test_callback)
-  register_leaflet(registry, "test_map", test_data, "id")
+  register_leaflet(session, registry, "test_map", test_data, "id")
   
   # Test programmatic selection
   isolate(registry$set_selection("B", "test_source"))
@@ -362,11 +338,7 @@ test_that("leaflet integration with registry selection works", {
 test_that("leaflet handles coordinate validation", {
   skip_if_not_installed("leaflet")
   
-  session <- list(
-    input = list(),
-    userData = list(),
-    onSessionEnded = function(callback) callback
-  )
+  session <- shiny::MockShinySession$new()
   
   # Test with invalid coordinates (should still register but may cause issues)
   invalid_coords_data <- reactive({
@@ -382,23 +354,19 @@ test_that("leaflet handles coordinate validation", {
   
   # Should still register (validation happens at runtime)
   expect_no_error({
-    register_leaflet(registry, "invalid_map", invalid_coords_data, "id")
+    register_leaflet(session, registry, "invalid_map", invalid_coords_data, "id")
   })
   
   components <- registry$get_components()
   expect_length(components, 1)
-  expect_true("invalid_map" %in% names(components))
+  expect_true("mock-session-invalid_map" %in% names(components))
 })
 
 test_that("leaflet handles sf objects correctly", {
   skip_if_not_installed("leaflet")
   skip_if_not_installed("sf")
   
-  session <- list(
-    input = list(),
-    userData = list(),
-    onSessionEnded = function(callback) callback
-  )
+  session <- shiny::MockShinySession$new()
   
   # Create mock sf object
   mock_sf_data <- reactive({
@@ -420,13 +388,13 @@ test_that("leaflet handles sf objects correctly", {
   
   # Should handle sf objects without error
   expect_no_error({
-    register_leaflet(registry, "sf_map", mock_sf_data, "business_id")
+    register_leaflet(session, registry, "sf_map", mock_sf_data, "business_id")
   })
   
   # Check that component was registered
   components <- registry$get_components()
   expect_length(components, 1)
-  expect_true("sf_map" %in% names(components))
+  expect_true("mock-session-sf_map" %in% names(components))
   
   # Test the processed data by calling the reactive directly
   # (not through the component registry which might have additional wrapping)
@@ -491,11 +459,7 @@ test_that("sf integration works with link_plots", {
   skip_if_not_installed("sf")
   skip_if_not_installed("DT")
   
-  session <- list(
-    input = list(),
-    userData = list(),
-    onSessionEnded = function(callback) callback
-  )
+  session <- shiny::MockShinySession$new()
   
   # Create sf data
   points <- sf::st_sfc(
@@ -532,8 +496,8 @@ test_that("sf integration works with link_plots", {
   # Both components should be registered
   components <- registry$get_components()
   expect_length(components, 2)
-  expect_true("business_map" %in% names(components))
-  expect_true("business_table" %in% names(components))
+  expect_true("mock-session-business_map" %in% names(components))
+  expect_true("mock-session-business_table" %in% names(components))
   
   # Test that the sf data was processed correctly by testing the original data
   # rather than trying to access the wrapped reactive in the component

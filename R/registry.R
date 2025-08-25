@@ -11,9 +11,10 @@
 #'
 #' @return A link_registry object with the following methods:
 #' \describe{
-#'   \item{register_component(component_id, type, data_reactive, shared_id_column, config)}{
+#'   \item{register_component(session, component_id, type, data_reactive, shared_id_column, config)}{
 #'     Register a new component with the registry. Parameters:
 #'     \itemize{
+#'       \item session: Shiny session object for namespacing. Can be global session in non-modular apps.
 #'       \item component_id: Unique string identifier for the component
 #'       \item type: Component type (e.g., "table", "plot")
 #'       \item data_reactive: Reactive expression returning the component's data
@@ -56,12 +57,15 @@
 #' registry$register_component("plot1", "plot", reactive(my_data), "id")
 #' }
 #'
-#' @seealso \code{\link{setup_component_observers}} for component observer setup
+#' @seealso [setup_component_observers()] for component observer setup
 create_link_registry <- function(session, on_selection_change = NULL) {
   # Validate inputs
   if (missing(session)) {
     stop("session argument is required")
   }
+
+  # Capture the main app session with an unambiguous name
+  top_level_session <- session
 
   # Private registry state
   components <- list()
@@ -71,7 +75,7 @@ create_link_registry <- function(session, on_selection_change = NULL) {
   # Registry methods
   registry <- list(
     # Register a new component
-    register_component = function(component_id, type, data_reactive,
+    register_component = function(session, component_id, type, data_reactive,
                                   shared_id_column, config = list()) {
       # Validation
       if (!is.character(component_id) || length(component_id) != 1) {
@@ -84,9 +88,11 @@ create_link_registry <- function(session, on_selection_change = NULL) {
         stop("shared_id_column must be a string")
       }
 
+      namespaced_id <- session$ns(component_id)
+
       # Destroy existing observers for this component if they exist
-      if (component_id %in% names(observers)) {
-        for (obs in observers[[component_id]]) {
+      if (namespaced_id %in% names(observers)) {
+        for (obs in observers[[namespaced_id]]) {
           if (!is.null(obs) && !is.null(obs$destroy)) {
             obs$destroy()
           }
@@ -94,7 +100,7 @@ create_link_registry <- function(session, on_selection_change = NULL) {
       }
 
       # Store component information
-      components[[component_id]] <<- list(
+      components[[namespaced_id]] <<- list(
         type = type,
         data_reactive = data_reactive,
         shared_id_column = shared_id_column,
@@ -102,8 +108,8 @@ create_link_registry <- function(session, on_selection_change = NULL) {
       )
 
       # Set up component-specific observers and store them
-      observers[[component_id]] <<- setup_component_observers(
-        component_id, type, session, components, shared_state, on_selection_change,
+      observers[[namespaced_id]] <<- setup_component_observers(
+        namespaced_id, type, top_level_session, components, shared_state, on_selection_change,
         registry = list(set_selection = registry$set_selection)
       )
 
@@ -155,7 +161,7 @@ create_link_registry <- function(session, on_selection_change = NULL) {
 
         tryCatch(
           {
-            on_selection_change(selected_id, selected_data, source_component_id, session)
+            on_selection_change(selected_id, selected_data, source_component_id, top_level_session)
           },
           error = function(e) {
             warning("Error in on_selection_change callback: ", e$message)

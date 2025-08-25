@@ -1,9 +1,19 @@
-#' Simple Plot Linking Function
+#' Simple Plot Linking Function for Non-Modular Shiny Apps
 #'
-#' `link_plots` is a simple interface to link interactive plots and tables in Shiny.
-#' This function automatically detects component types and sets up bidirectional linking.
-#' For more robust applications, especially with complex naming schemes, consider using
-#' \code{\link{register_leaflet}} and \code{\link{register_dt}} directly.
+#' @description
+#' `link_plots` provides a simple, one-line interface to link interactive
+#' components in a **single-file or non-modular Shiny application**. It
+#' automatically detects component types and sets up bidirectional linking.
+#'
+#' @details
+#' This function is the fastest way to get started with `linkeR` and is ideal
+#' for straightforward dashboards.
+#'
+#' For more complex applications that use **Shiny Modules**, you should use the
+#' more robust pattern of creating a central registry with [create_link_registry()]
+#' and passing it to your modules, where you will call [register_leaflet()] or
+#' [register_dt()] directly. This preserves module encapsulation and leads to
+#' more maintainable code. See the `modularized_example` for a complete example of this pattern.
 #'
 #' @param session The Shiny session object
 #' @param ... Named arguments where names are component output IDs and values are
@@ -27,6 +37,8 @@
 #' @return Invisibly returns the created registry object
 #' @export
 #' @examples
+#' # This example is for a single-file app.
+#' # For modular apps, please see the "Using linkeR with Modules" vignette.
 #' if (interactive()) {
 #'   library(shiny)
 #'   library(leaflet)
@@ -132,6 +144,7 @@ link_plots <- function(session, ..., shared_id_column,
 
       # USE REGISTER_LEAFLET FUNCTION
       register_leaflet(
+        session = session,  # this is just the global session in the case of single file applications
         registry = registry,
         leaflet_output_id = comp_name,
         data_reactive = comp_data,
@@ -153,6 +166,7 @@ link_plots <- function(session, ..., shared_id_column,
 
       # USE REGISTER_DT FUNCTION
       register_dt(
+        session = session,  # this is just the global session in the case of single file applications
         registry = registry,
         dt_output_id = comp_name,
         data_reactive = comp_data,
