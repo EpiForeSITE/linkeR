@@ -33,7 +33,7 @@ register_leaflet(
 
 \item{highlight_zoom}{Numeric: zoom level when highlighting (default: 12)}
 
-\item{click_handler}{Optional function: custom click handler for row selection}
+\item{click_handler}{Optional function: custom click handler for row selection, must have args (map_proxy, selected_data, session), overrides all default behavior}
 }
 \description{
 \code{register_leaflet} registers a Leaflet map for linking with other components.

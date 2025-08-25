@@ -22,7 +22,10 @@ tableServer <- function(id, data, registry) {
       registry = registry,
       dt_output_id = "wastewater_table", # <-- the local ID
       data_reactive = data,
-      shared_id_column = "id"
+      shared_id_column = "id",
+      click_handler = function(map_proxy, selected_data, session) { # <-- click handler must have map_proxy, selected_data, session, overrides all default behavior
+        print("The DT table component was just clicked!")
+      }
     )
 
     output$wastewater_table <- renderDT({
