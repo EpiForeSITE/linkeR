@@ -7,7 +7,7 @@
 #' @param dt_output_id Character string: the outputId of your [DT::DTOutput]
 #' @param data_reactive Reactive expression returning the data frame for the table
 #' @param shared_id_column Character string: name of the ID column
-#' @param click_handler Optional function: custom click handler for row selection
+#' @param click_handler Optional function: custom click handler for row selection, must have args (map_proxy, selected_data, session), overrides all default behavior
 #' @returns NULL (invisible). This function is called for its side effects of registering the component.
 #' @export
 #' @examples

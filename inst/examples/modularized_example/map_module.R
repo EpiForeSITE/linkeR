@@ -22,7 +22,10 @@ mapServer <- function(id, data, registry) {
       registry = registry,
       leaflet_output_id = "wastewater_map", # <-- the local ID
       data_reactive = data,
-      shared_id_column = "id"
+      shared_id_column = "id",
+      click_handler = function(map_proxy, selected_data, session) { # <-- click handler must have map_proxy, selected_data, session, overrides all default behavior
+        print("The leaflet map component was just clicked!")
+      }
     )
 
     output$wastewater_map <- renderLeaflet({

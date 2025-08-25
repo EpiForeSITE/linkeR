@@ -10,7 +10,7 @@
 #' @param lng_col Character string: name of longitude column (default: "longitude")
 #' @param lat_col Character string: name of latitude column (default: "latitude")
 #' @param highlight_zoom Numeric: zoom level when highlighting (default: 12)
-#' @param click_handler Optional function: custom click handler for row selection
+#' @param click_handler Optional function: custom click handler for row selection, must have args (map_proxy, selected_data, session), overrides all default behavior
 #' @export
 #' @examples
 #' \dontrun{
@@ -75,7 +75,7 @@ register_leaflet <- function(session, registry, leaflet_output_id, data_reactive
       iconColor = "#FFFFFF"
     ),
     original_data_reactive = data_reactive,  # Keep reference to original for custom handlers
-    click_handler = click_handler  # ADD THIS LINE
+    click_handler = click_handler
   )
 
   # Register with the registry using processed data

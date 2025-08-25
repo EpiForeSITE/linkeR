@@ -24,7 +24,7 @@ register_dt(
 
 \item{shared_id_column}{Character string: name of the ID column}
 
-\item{click_handler}{Optional function: custom click handler for row selection}
+\item{click_handler}{Optional function: custom click handler for row selection, must have args (map_proxy, selected_data, session), overrides all default behavior}
 }
 \value{
 NULL (invisible). This function is called for its side effects of registering the component.
