@@ -31,5 +31,5 @@ Suggests:
     rmarkdown
 Config/testthat/edition: 3
 VignetteBuilder: knitr
-URL: https://EpiForeSITE.github.io/linkeR, https://github.com/EpiForeSITE/linkeR
+URL: https://epiforesite.github.io/linkeR, https://github.com/EpiForeSITE/linkeR
 BugReports: https://github.com/EpiForeSITE/linkeR/issues
