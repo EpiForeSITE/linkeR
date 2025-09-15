@@ -253,7 +253,9 @@ server <- function(input, output, session) {
   current_selection <- reactiveVal(NULL)
   
   # Business data
-  business_data <- reactive({ /* your data */ })
+  business_data <- reactive({ 
+    # your data
+   })
   
   # Set up linking with global callback
   registry <- link_plots(
