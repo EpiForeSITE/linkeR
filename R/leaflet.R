@@ -11,6 +11,7 @@
 #' @param lat_col Character string: name of latitude column (default: "latitude")
 #' @param highlight_zoom Numeric: zoom level when highlighting (default: 12)
 #' @param click_handler Optional function: custom click handler for row selection, must have args (map_proxy, selected_data, session), overrides all default behavior
+#' @return No return value, called for side effects.
 #' @export
 #' @examples
 #' \dontrun{

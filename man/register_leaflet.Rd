@@ -35,6 +35,9 @@ register_leaflet(
 
 \item{click_handler}{Optional function: custom click handler for row selection, must have args (map_proxy, selected_data, session), overrides all default behavior}
 }
+\value{
+No return value, called for side effects.
+}
 \description{
 \code{register_leaflet} registers a Leaflet map for linking with other components.
 }
