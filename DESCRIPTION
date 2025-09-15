@@ -6,8 +6,6 @@ Authors@R:
            comment = c(ORCID = "0009-0000-5053-2281")),
     person("Centers for Disease Control and Prevention's Center for Forecasting and Outbreak Analytics",
         role="fnd", comment = "Cooperative agreement CDC-RFA-FT-23-0069"))
-Author: Jake Wagoner [aut, cre] (<https://orcid.org/0009-0000-5053-2281>)
-Maintainer: Jake Wagoner <jakew@sci.utah.edu>
 Description: Build powerful, linked-view dashboards in 'shiny' applications. With a 
     declarative, one-line setup, you can create bidirectional links between 
     interactive components. When a user interacts with one element (e.g., clicking 
