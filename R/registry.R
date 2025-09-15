@@ -1,10 +1,10 @@
-#' Create a Link Registry for Shiny Component Coordination
+#' Create a Link Registry for 'shiny' Component Coordination
 #'
 #' `create_link_registry` creates a registry system that manages linked interactions between multiple
-#' Shiny components, allowing them to share selection state and coordinate
+#' 'shiny' components, allowing them to share selection state and coordinate
 #' their behavior.
 #'
-#' @param session A Shiny session object, required for server-side reactivity
+#' @param session A 'shiny' session object, required for server-side reactivity
 #' @param on_selection_change Optional callback function that gets called when
 #'   selection changes. Should accept parameters: selected_id, selected_data,
 #'   source_component_id, and session
@@ -14,7 +14,7 @@
 #'   \item{register_component(session, component_id, type, data_reactive, shared_id_column, config)}{
 #'     Register a new component with the registry. Parameters:
 #'     \itemize{
-#'       \item session: Shiny session object for namespacing. Can be global session in non-modular apps.
+#'       \item session: 'shiny' session object for namespacing. Can be global session in non-modular apps.
 #'       \item component_id: Unique string identifier for the component
 #'       \item type: Component type (e.g., "table", "plot")
 #'       \item data_reactive: Reactive expression returning the component's data
@@ -44,7 +44,7 @@
 #' @export
 #' @examples
 #' \dontrun{
-#' # In your Shiny server function
+#' # In your 'shiny' server function
 #' registry <- create_link_registry(
 #'   session = session,
 #'   on_selection_change = function(id, data, source, session) {
@@ -224,7 +224,7 @@ create_link_registry <- function(session, on_selection_change = NULL) {
 #' @param component_id Character string. Unique identifier for the component.
 #' @param type Character string. The type of component to set up observers for.
 #'   Currently supports "leaflet" and "datatable".
-#' @param session Shiny session object. The current Shiny session.
+#' @param session 'shiny' session object. The current 'shiny' session.
 #' @param components List. Collection of all components in the application.
 #' @param shared_state Reactive values object. Shared state across components.
 #' @param on_selection_change Function. Callback function to execute when

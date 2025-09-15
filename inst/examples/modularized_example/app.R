@@ -66,7 +66,7 @@ ui <- fluidPage(
   layout_sidebar(
     sidebar = sidebar(
       title = "Dashboard Controls",
-      p("This example demonstrates the issue of using linkeR across Shiny modules. 
+      p("This example demonstrates the issue of using linkeR across 'shiny' modules. 
          The linking is expected to fail because the component IDs are namespaced."),
       hr(),
       verbatimTextOutput("selection_info", placeholder = TRUE)

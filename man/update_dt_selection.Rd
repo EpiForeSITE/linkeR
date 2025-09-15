@@ -11,7 +11,7 @@ update_dt_selection(component_id, selected_id, session, components)
 
 \item{selected_id}{The shared ID value to select. If NULL, deselects all rows.}
 
-\item{session}{Shiny session object for the current user session.}
+\item{session}{'shiny' session object for the current user session.}
 
 \item{components}{List containing component configuration information, including
 data reactives, shared ID columns, and optional custom click handlers.}

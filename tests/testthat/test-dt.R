@@ -3,7 +3,7 @@
 
 test_that("register_dt validates input", {
   # Mock session and registry
-  session <- shiny::MockShinySession$new()
+  session <- shiny::Mock'shiny'Session$new()
   registry <- create_link_registry(session)
   
   # Test with valid inputs
@@ -41,7 +41,7 @@ test_that("register_dt validates input", {
 })
 
 test_that("register_dt creates proper component registration", {
-  session <- shiny::MockShinySession$new()
+  session <- shiny::Mock'shiny'Session$new()
   registry <- create_link_registry(session)
   
   test_data <- reactive({
@@ -75,7 +75,7 @@ test_that("register_dt requires DT package", {
     # This test would need more sophisticated mocking
     skip("DT package is available, cannot test missing package scenario")
   } else {
-    session <- shiny::MockShinySession$new()
+    session <- shiny::Mock'shiny'Session$new()
     registry <- create_link_registry(session)
     
     test_data <- reactive({
@@ -93,7 +93,7 @@ test_that("setup_datatable_observers creates proper observers", {
   skip_if_not_installed("DT")
   skip_if_not_installed("later")
   
-  session <- shiny::MockShinySession$new()
+  session <- shiny::Mock'shiny'Session$new()
   
   # Mock reactive values for shared state
   shared_state <- shiny::reactiveValues(
@@ -146,7 +146,7 @@ test_that("DT observer handles session flag correctly", {
   skip_if_not_installed("DT")
   skip_if_not_installed("later")
   
-  session <- shiny::MockShinySession$new()
+  session <- shiny::Mock'shiny'Session$new()
   
   # Mock reactive values
   shared_state <- shiny::reactiveValues(
@@ -202,7 +202,7 @@ test_that("DT observer handles session flag correctly", {
 test_that("DT handles different data types in shared column", {
   skip_if_not_installed("DT")
   
-  session <- shiny::MockShinySession$new()
+  session <- shiny::Mock'shiny'Session$new()
   
   registry <- create_link_registry(session)
   
@@ -254,7 +254,7 @@ test_that("DT handles different data types in shared column", {
 test_that("DT integration with registry selection works", {
   skip_if_not_installed("DT")
   
-  session <- shiny::MockShinySession$new()
+  session <- shiny::Mock'shiny'Session$new()
   
   test_data <- reactive({
     data.frame(

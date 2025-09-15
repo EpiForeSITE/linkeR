@@ -2,7 +2,7 @@
 #'
 #' `register_dt` registers a DT datatable for linking with other components.
 #'
-#' @param session Shiny session object. The session from the module where the DT is used. This could be global session in non-modular apps.
+#' @param session 'shiny' session object. The session from the module where the DT is used. This could be global session in non-modular apps.
 #' @param registry A link registry created by [create_link_registry()]
 #' @param dt_output_id Character string: the outputId of your [DT::DTOutput]
 #' @param data_reactive Reactive expression returning the data frame for the table
@@ -13,7 +13,7 @@
 #' @examples
 #' \dontrun{
 #'   # Create a mock session for the example
-#'   session <- shiny::MockShinySession$new()
+#'   session <- shiny::Mock'shiny'Session$new()
 #'
 #'   # Create a registry
 #'   registry <- create_link_registry(session)
@@ -73,7 +73,7 @@ register_dt <- function(session, registry, dt_output_id, data_reactive, shared_i
 #' selection changes and synchronizes the component with the shared application state.
 #'
 #' @param component_id Character string. Unique identifier for the DataTable component.
-#' @param session Shiny session object. The current Shiny session for reactive context.
+#' @param session 'shiny' session object. The current 'shiny' session for reactive context.
 #' @param components List. Collection of UI components in the application.
 #' @param shared_state Reactive values object. Shared state container for cross-component communication.
 #' @param on_selection_change Function. Callback function to execute when table selection changes.
@@ -187,7 +187,7 @@ setup_datatable_observers <- function(component_id, session, components, shared_
 #'
 #' @param component_id Character string. The ID of the DT component to update.
 #' @param selected_id The shared ID value to select. If NULL, deselects all rows.
-#' @param session Shiny session object for the current user session.
+#' @param session 'shiny' session object for the current user session.
 #' @param components List containing component configuration information, including
 #'   data reactives, shared ID columns, and optional custom click handlers.
 #'

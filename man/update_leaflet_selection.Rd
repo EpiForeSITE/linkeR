@@ -12,7 +12,7 @@ update_leaflet_selection(component_id, selected_id, session, components)
 \item{selected_id}{Character string or NULL. The ID of the selected item. If NULL,
 indicates deselection.}
 
-\item{session}{Shiny session object. The current Shiny session.}
+\item{session}{'shiny' session object. The current 'shiny' session.}
 
 \item{components}{List. A named list containing component information, where each
 element contains component configuration including data_reactive, shared_id_column,

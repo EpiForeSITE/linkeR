@@ -3,7 +3,7 @@ test_that("registry handles multiple sessions correctly", {
   skip_if_not_installed("leaflet")
   
   # Create separate sessions (simulating different modules)
-  main_session <- shiny::MockShinySession$new()
+  main_session <- shiny::Mock'shiny'Session$new()
   map_session <- main_session$makeScope("map-module")
   table_session <- main_session$makeScope("table-module")
   
@@ -65,7 +65,7 @@ test_that("cross-session selection works correctly", {
   skip_if_not_installed("leaflet")
   
   # Setup separate sessions
-  main_session <- shiny::MockShinySession$new()
+  main_session <- shiny::Mock'shiny'Session$new()
   map_session <- main_session$makeScope("map-module")
   table_session <- main_session$makeScope("table-module")
   
@@ -131,8 +131,8 @@ test_that("separate sessions maintain component isolation", {
   skip_if_not_installed("DT")
   
   # Create separate sessions
-  session1 <- shiny::MockShinySession$new()
-  session2 <- shiny::MockShinySession$new()
+  session1 <- shiny::Mock'shiny'Session$new()
+  session2 <- shiny::Mock'shiny'Session$new()
   
   # Create separate registries (simulating different app instances)
   registry1 <- create_link_registry(session1)
@@ -173,7 +173,7 @@ test_that("separate sessions maintain component isolation", {
 test_that("error handling in registration", {
   skip_if_not_installed("DT")
   
-  main_session <- shiny::MockShinySession$new()
+  main_session <- shiny::Mock'shiny'Session$new()
   
   # Test with invalid registry
   expect_error({
@@ -202,7 +202,7 @@ test_that("custom handlers work in multi-component setup", {
   skip_if_not_installed("DT")
   skip_if_not_installed("leaflet")
   
-  main_session <- shiny::MockShinySession$new()
+  main_session <- shiny::Mock'shiny'Session$new()
   map_session <- main_session$makeScope("map-module")
   table_session <- main_session$makeScope("table-module")
 
@@ -266,7 +266,7 @@ test_that("registry state management across components", {
   skip_if_not_installed("DT")
   skip_if_not_installed("leaflet")
   
-  main_session <- shiny::MockShinySession$new()
+  main_session <- shiny::Mock'shiny'Session$new()
   map_session <- main_session$makeScope("map-module")
   table_session <- main_session$makeScope("table-module")
   table_session2 <- main_session$makeScope("table-module-2")

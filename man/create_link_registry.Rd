@@ -2,12 +2,12 @@
 % Please edit documentation in R/registry.R
 \name{create_link_registry}
 \alias{create_link_registry}
-\title{Create a Link Registry for Shiny Component Coordination}
+\title{Create a Link Registry for 'shiny' Component Coordination}
 \usage{
 create_link_registry(session, on_selection_change = NULL)
 }
 \arguments{
-\item{session}{A Shiny session object, required for server-side reactivity}
+\item{session}{A 'shiny' session object, required for server-side reactivity}
 
 \item{on_selection_change}{Optional callback function that gets called when
 selection changes. Should accept parameters: selected_id, selected_data,
@@ -19,7 +19,7 @@ A link_registry object with the following methods:
 \item{register_component(session, component_id, type, data_reactive, shared_id_column, config)}{
 Register a new component with the registry. Parameters:
 \itemize{
-\item session: Shiny session object for namespacing. Can be global session in non-modular apps.
+\item session: 'shiny' session object for namespacing. Can be global session in non-modular apps.
 \item component_id: Unique string identifier for the component
 \item type: Component type (e.g., "table", "plot")
 \item data_reactive: Reactive expression returning the component's data
@@ -39,7 +39,7 @@ Programmatically update the selection state
 }
 \description{
 \code{create_link_registry} creates a registry system that manages linked interactions between multiple
-Shiny components, allowing them to share selection state and coordinate
+'shiny' components, allowing them to share selection state and coordinate
 their behavior.
 }
 \details{
@@ -53,7 +53,7 @@ memory leaks from orphaned observers.
 }
 \examples{
 \dontrun{
-# In your Shiny server function
+# In your 'shiny' server function
 registry <- create_link_registry(
   session = session,
   on_selection_change = function(id, data, source, session) {

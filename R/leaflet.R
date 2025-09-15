@@ -2,7 +2,7 @@
 #'
 #' `register_leaflet` registers a Leaflet map for linking with other components.
 #'
-#' @param session Shiny session object. The session from the module where the DT is used. This could be global session in non-modular apps.
+#' @param session 'shiny' session object. The session from the module where the DT is used. This could be global session in non-modular apps.
 #' @param registry A link registry created by [create_link_registry()]
 #' @param leaflet_output_id Character string: the outputId of your leafletOutput
 #' @param data_reactive Reactive expression returning the data frame for the map
@@ -15,7 +15,7 @@
 #' @examples
 #' \dontrun{
 #'   # Create a mock session for the example
-#'   session <- shiny::MockShinySession$new()
+#'   session <- shiny::Mock'shiny'Session$new()
 #'
 #'   # Create a registry
 #'   registry <- create_link_registry(session)
@@ -96,7 +96,7 @@ register_leaflet <- function(session, registry, leaflet_output_id, data_reactive
 #' responds to selection changes from other linked components.
 #'
 #' @param component_id Character string. The unique identifier for the Leaflet component.
-#' @param session Shiny session object for the current user session.
+#' @param session 'shiny' session object for the current user session.
 #' @param components List containing component configuration data including data reactives
 #'   and shared ID columns.
 #' @param shared_state Reactive values object containing selected_id and selection_source
@@ -272,7 +272,7 @@ apply_default_leaflet_behavior <- function(map_proxy, selected_data, component_i
 #' @param component_id Character string. The ID of the Leaflet map component to update.
 #' @param selected_id Character string or NULL. The ID of the selected item. If NULL,
 #'   indicates deselection.
-#' @param session Shiny session object. The current Shiny session.
+#' @param session 'shiny' session object. The current 'shiny' session.
 #' @param components List. A named list containing component information, where each
 #'   element contains component configuration including data_reactive, shared_id_column,
 #'   and config settings.

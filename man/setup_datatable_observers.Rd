@@ -16,7 +16,7 @@ setup_datatable_observers(
 \arguments{
 \item{component_id}{Character string. Unique identifier for the DataTable component.}
 
-\item{session}{Shiny session object. The current Shiny session for reactive context.}
+\item{session}{'shiny' session object. The current 'shiny' session for reactive context.}
 
 \item{components}{List. Collection of UI components in the application.}
 

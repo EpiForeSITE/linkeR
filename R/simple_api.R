@@ -1,21 +1,21 @@
-#' Simple Plot Linking Function for Non-Modular Shiny Apps
+#' Simple Plot Linking Function for Non-Modular 'shiny' Apps
 #'
 #' @description
 #' `link_plots` provides a simple, one-line interface to link interactive
-#' components in a **single-file or non-modular Shiny application**. It
+#' components in a **single-file or non-modular 'shiny' application**. It
 #' automatically detects component types and sets up bidirectional linking.
 #'
 #' @details
 #' This function is the fastest way to get started with `linkeR` and is ideal
 #' for straightforward dashboards.
 #'
-#' For more complex applications that use **Shiny Modules**, you should use the
+#' For more complex applications that use **'shiny' Modules**, you should use the
 #' more robust pattern of creating a central registry with [create_link_registry()]
 #' and passing it to your modules, where you will call [register_leaflet()] or
 #' [register_dt()] directly. This preserves module encapsulation and leads to
 #' more maintainable code. See the `modularized_example` for a complete example of this pattern.
 #'
-#' @param session The Shiny session object
+#' @param session The 'shiny' session object
 #' @param ... Named arguments where names are component output IDs and values are
 #'   reactive data frames. Each data frame must contain the shared_id_column.
 #'   For leaflet maps: can be sf objects (coordinates auto-extracted) or regular
@@ -187,7 +187,7 @@ link_plots <- function(session, ..., shared_id_column,
 #' Detect Component Type Based on Output ID Patterns
 #'
 #' `detect_component_type` is an internal function that attempts to automatically determine the type of
-#' Shiny output component based on common naming patterns in the component ID.
+#' 'shiny' output component based on common naming patterns in the component ID.
 #' This function uses simple heuristics to classify components as either
 #' "leaflet" (for maps) or "datatable" (for tables), with "datatable" as the
 #' default fallback.

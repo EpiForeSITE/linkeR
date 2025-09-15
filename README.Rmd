@@ -10,11 +10,11 @@ knitr::opts_chunk$set(
   comment = "#>",
   fig.path = "man/figures/README-",
   out.width = "100%",
-  eval = FALSE  # Set to FALSE since we're showing Shiny examples
+  eval = FALSE  # Set to FALSE since we're showing 'shiny' examples
 )
 ```
 
-# linkeR: Effortless Linked Views for Shiny Applications
+# linkeR: Effortless Linked Views for 'shiny' Applications
 
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/EpiForeSITE/linkeR/actions/workflows/R-CMD-check.yaml/badge.svg?cache=bust)](https://github.com/EpiForeSITE/linkeR/actions/workflows/R-CMD-check.yaml)
@@ -27,7 +27,7 @@ knitr::opts_chunk$set(
 
 > **Create synchronized, interactive dashboards where one click updates multiple components**
 
-`linkeR` makes it effortless to create linked views in Shiny applications. When users interact with one component (like clicking a map marker), all related components (tables, charts, other maps) automatically update to show corresponding information.
+`linkeR` makes it effortless to create linked views in 'shiny' applications. When users interact with one component (like clicking a map marker), all related components (tables, charts, other maps) automatically update to show corresponding information.
 
 ## What linkeR Does
 
@@ -134,7 +134,7 @@ output$my_map <- renderLeaflet({
 | Leaflet Maps | ✅ Full Support | Interactive maps with markers, circles, polygons |
 | DT DataTables | ✅ Full Support | Sortable, filterable tables |
 | Plotly Charts | 🔄 Partial | Requires manual event handling |
-| Custom Components | 🔄 Partial | Any Shiny component with click events, Requires manual event handling |
+| Custom Components | 🔄 Partial | Any 'shiny' component with click events, Requires manual event handling |
 | Base R Plots | 📋 Planned | Static plots with click detection |
 | Mapbox | 📋 Planned | Alternative mapping solution |
 
