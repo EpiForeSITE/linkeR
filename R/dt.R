@@ -85,19 +85,6 @@ register_dt <- function(session, registry, dt_output_id, data_reactive, shared_i
 #' This function creates reactive observers that monitor DataTable interactions and
 #' update the shared state accordingly. It handles selection events and ensures
 #' proper synchronization between the DataTable component and other application components.
-#'
-#' @examples
-#' \dontrun{
-#' setup_datatable_observers(
-#'   component_id = "my_table",
-#'   session = session,
-#'   components = ui_components,
-#'   shared_state = app_state,
-#'   on_selection_change = function(selected_rows) {
-#'     # Handle selection change
-#'   }
-#' )
-#' }
 setup_datatable_observers <- function(component_id, session, components, shared_state, on_selection_change, registry = NULL) {
   # Use session userData to store the flag - this persists across observer calls
   flag_name <- paste0(component_id, "_updating_selection")
@@ -209,15 +196,6 @@ setup_datatable_observers <- function(component_id, session, components, shared_
 #' Otherwise, default row selection/deselection is performed.
 #'
 #' @return NULL (invisible). Function is called for side effects only.
-#'
-#' @examples
-#' \dontrun{
-#' # Update DT selection when ID "123" is selected
-#' update_dt_selection("my_table", "123", session, components)
-#' 
-#' # Deselect all rows
-#' update_dt_selection("my_table", NULL, session, components)
-#' }
 update_dt_selection <- function(component_id, selected_id, session, components) {
   if (!requireNamespace("DT", quietly = TRUE)) {
     return()

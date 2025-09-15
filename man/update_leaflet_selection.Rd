@@ -47,12 +47,3 @@ Required columns in the component data:
 If the leaflet package is not available, the function returns early without error.
 Missing required columns will generate a warning and cause early return.
 }
-\examples{
-\dontrun{
-# Update the map with a new selection
-update_leaflet_selection("my_map", "selected_id", session, components)
-#' # Deselect the map
-update_leaflet_selection("my_map", NULL, session, components)
-}
-
-}

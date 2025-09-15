@@ -120,18 +120,6 @@ register_leaflet <- function(session, registry, leaflet_output_id, data_reactive
 #' The selection response observer:
 #' - Only responds to selections from other components (not self-selections)
 #' - Updates the map visualization to reflect the new selection
-#'
-#' @examples
-#' \dontrun{
-#' observers <- setup_leaflet_observers(
-#'   component_id = "map1",
-#'   session = session,
-#'   components = components_list,
-#'   shared_state = shared_values,
-#'   on_selection_change = NULL,
-#'   registry = selection_registry
-#' )
-#' }
 setup_leaflet_observers <- function(component_id, session, components, shared_state, on_selection_change, registry = NULL) {
   # Observer for map marker clicks
   observer1 <- shiny::observeEvent(session$input[[paste0(component_id, "_marker_click")]],
@@ -230,16 +218,6 @@ setup_leaflet_observers <- function(component_id, session, components, shared_st
 #' \itemize{
 #'   \item Removes all existing popups from the map
 #' }
-#'
-#' @examples
-#' \dontrun{
-#' # Apply default behavior when item is selected
-#' apply_default_leaflet_behavior(map_proxy, selected_row, component_info)
-#'
-#' # Apply default behavior when item is deselected
-#' apply_default_leaflet_behavior(map_proxy, NULL, component_info)
-#' }
-# Helper function for consistent default leaflet behavior
 apply_default_leaflet_behavior <- function(map_proxy, selected_data, component_info) {
   if (!is.null(selected_data)) {
     # Create default popup content
@@ -296,13 +274,6 @@ apply_default_leaflet_behavior <- function(map_proxy, selected_data, component_i
 #' }
 #'
 #' @return NULL (invisibly). The function is called for its side effects on the Leaflet map.
-#' @examples
-#' \dontrun{
-#' # Update the map with a new selection
-#' update_leaflet_selection("my_map", "selected_id", session, components)
-#' #' # Deselect the map
-#' update_leaflet_selection("my_map", NULL, session, components)
-#' }
 #' 
 #' @note If the leaflet package is not available, the function returns early without error.
 #'   Missing required columns will generate a warning and cause early return.

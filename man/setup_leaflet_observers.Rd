@@ -54,15 +54,3 @@ The selection response observer:
 \item Updates the map visualization to reflect the new selection
 }
 }
-\examples{
-\dontrun{
-observers <- setup_leaflet_observers(
-  component_id = "map1",
-  session = session,
-  components = components_list,
-  shared_state = shared_values,
-  on_selection_change = NULL,
-  registry = selection_registry
-)
-}
-}

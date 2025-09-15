@@ -39,16 +39,3 @@ This function creates reactive observers that monitor DataTable interactions and
 update the shared state accordingly. It handles selection events and ensures
 proper synchronization between the DataTable component and other application components.
 }
-\examples{
-\dontrun{
-setup_datatable_observers(
-  component_id = "my_table",
-  session = session,
-  components = ui_components,
-  shared_state = app_state,
-  on_selection_change = function(selected_rows) {
-    # Handle selection change
-  }
-)
-}
-}

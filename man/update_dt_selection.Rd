@@ -43,12 +43,3 @@ the DT proxy, selected data (or NULL for deselection), and session.
 Otherwise, default row selection/deselection is performed.
 }
 
-\examples{
-\dontrun{
-# Update DT selection when ID "123" is selected
-update_dt_selection("my_table", "123", session, components)
-
-# Deselect all rows
-update_dt_selection("my_table", NULL, session, components)
-}
-}
