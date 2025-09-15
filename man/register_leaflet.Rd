@@ -60,7 +60,7 @@ No return value, called for side effects.
   })
 
   # Register a leaflet component
-  register_leaflet(registry, "my_map", my_data, "id")
+  register_leaflet(session, registry, "my_map", my_data, "id")
 
   # Verify registration
   print(registry$get_components())
