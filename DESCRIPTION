@@ -1,6 +1,6 @@
 Package: linkeR
 Title: Link Interactive Plots and Tables in 'shiny' Applications
-Version: 0.1.1
+Version: 0.1.2
 Authors@R: 
     c(person("Jake", "Wagoner", , "jakew@sci.utah.edu", role = c("aut", "cre"),
            comment = c(ORCID = "0009-0000-5053-2281")),
