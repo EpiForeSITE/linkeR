@@ -1,6 +1,6 @@
 test_that("create_link_registry works", {
   # Mock shiny session
-  session <- shiny::Mock'shiny'Session$new()
+  session <- shiny::MockShinySession$new()
 
   # Create registry
   registry <- create_link_registry(session)
@@ -12,7 +12,7 @@ test_that("create_link_registry works", {
 })
 
 test_that("register_component validates inputs", {
-  session <- shiny::Mock'shiny'Session$new()
+  session <- shiny::MockShinySession$new()
   registry <- create_link_registry(session)
 
   # Test missing component_id
@@ -43,7 +43,7 @@ test_that("register_component validates inputs", {
 })
 
 test_that("component registration works", {
-  session <- shiny::Mock'shiny'Session$new()
+  session <- shiny::MockShinySession$new()
   registry <- create_link_registry(session)
 
   # Create mock reactive data
@@ -76,7 +76,7 @@ test_that("component registration works", {
 })
 
 test_that("component registration works with supported types", {
-  session <- shiny::Mock'shiny'Session$new()
+  session <- shiny::MockShinySession$new()
   registry <- create_link_registry(session)
 
   # Create mock reactive data for DT (supported type)
@@ -108,7 +108,7 @@ test_that("component registration works with supported types", {
 })
 
 test_that("leaflet component registration works", {
-  session <- shiny::Mock'shiny'Session$new()
+  session <- shiny::MockShinySession$new()
   registry <- create_link_registry(session)
 
   # Create mock reactive data for leaflet
@@ -147,7 +147,7 @@ test_that("leaflet component registration works", {
 })
 
 test_that("DT component registration works", {
-  session <- shiny::Mock'shiny'Session$new()
+  session <- shiny::MockShinySession$new()
   registry <- create_link_registry(session)
 
   # Create mock reactive data for DT
@@ -179,7 +179,7 @@ test_that("DT component registration works", {
 })
 
 test_that("registry manages multiple components correctly", {
-  session <- shiny::Mock'shiny'Session$new()
+  session <- shiny::MockShinySession$new()
 
   registry <- create_link_registry(session)
 
@@ -212,7 +212,7 @@ test_that("registry manages multiple components correctly", {
 })
 
 test_that("selection state management works", {
-  session <- shiny::Mock'shiny'Session$new()
+  session <- shiny::MockShinySession$new()
 
   registry <- create_link_registry(session)
 
@@ -235,7 +235,7 @@ test_that("selection state management works", {
 })
 
 test_that("registry cleanup works", {
-  session <- shiny::Mock'shiny'Session$new()
+  session <- shiny::MockShinySession$new()
 
   registry <- create_link_registry(session)
 
@@ -258,7 +258,7 @@ test_that("registry cleanup works", {
 })
 
 test_that("registry handles duplicate component names", {
-  session <- shiny::Mock'shiny'Session$new()
+  session <- shiny::MockShinySession$new()
   
   registry <- create_link_registry(session)
   data1 <- reactive({ data.frame(id = 1:3, name = c("A", "B", "C")) })

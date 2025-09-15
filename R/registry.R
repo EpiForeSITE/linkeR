@@ -43,8 +43,11 @@
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' # In your 'shiny' server function
+#' \donttest{
+#' # Create a mock session for the example
+#' session <- shiny::MockShinySession$new()
+#' 
+#' # Create registry with optional callback
 #' registry <- create_link_registry(
 #'   session = session,
 #'   on_selection_change = function(id, data, source, session) {
@@ -52,9 +55,10 @@
 #'   }
 #' )
 #'
-#' # Register components
-#' registry$register_component("table1", "table", reactive(my_data), "id")
-#' registry$register_component("plot1", "plot", reactive(my_data), "id")
+#' # In a real app, you would register components like this:
+#' # my_data <- reactive({ data.frame(id = 1:3, name = c("A", "B", "C")) })
+#' # registry$register_component("table1", "table", my_data, "id")
+#' # registry$register_component("plot1", "plot", my_data, "id")
 #' }
 #'
 #' @seealso [setup_component_observers()] for component observer setup

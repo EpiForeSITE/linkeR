@@ -1,5 +1,5 @@
 test_that("link_plots validates inputs", {
-  session <- shiny::Mock'shiny'Session$new()
+  session <- shiny::MockShinySession$new()
 
   # Test missing session
   expect_error(
@@ -40,7 +40,7 @@ test_that("component type detection works", {
 })
 
 test_that("link_plots creates registry with components", {
-  session <- shiny::Mock'shiny'Session$new()
+  session <- shiny::MockShinySession$new()
 
   # Create test data
   map_data <- reactive({
@@ -82,7 +82,7 @@ test_that("link_plots creates registry with components", {
 })
 
 test_that("link_plots works with 3 components", {
-  session <- shiny::Mock'shiny'Session$new()
+  session <- shiny::MockShinySession$new()
 
   # Create mock reactive data for three components
   data1 <- reactive({
@@ -133,7 +133,7 @@ test_that("link_plots works with 3 components", {
 })
 
 test_that("link_plots handles edge cases correctly", {
-  session <- shiny::Mock'shiny'Session$new()
+  session <- shiny::MockShinySession$new()
 
   # Test with single component (should not work)
   single_data <- reactive({
@@ -163,7 +163,7 @@ test_that("link_plots handles edge cases correctly", {
 })
 
 test_that("link_plots validates shared_id_column across all datasets", {
-  session <- shiny::Mock'shiny'Session$new()
+  session <- shiny::MockShinySession$new()
 
   # Data with shared ID column
   good_data <- reactive({
@@ -188,7 +188,7 @@ test_that("link_plots validates shared_id_column across all datasets", {
 })
 
 test_that("link_plots handles different data types in shared column", {
-  session <- shiny::Mock'shiny'Session$new()
+  session <- shiny::MockShinySession$new()
   # Test with character IDs
   char_data <- reactive({
     data.frame(
@@ -239,7 +239,7 @@ test_that("link_plots handles different data types in shared column", {
 })
 
 test_that("link_plots custom handlers are properly stored", {
-  session <- shiny::Mock'shiny'Session$new()
+  session <- shiny::MockShinySession$new()
 
   test_data <- reactive({
     data.frame(
@@ -293,7 +293,7 @@ test_that("link_plots custom handlers are properly stored", {
 })
 
 test_that("link_plots on_selection_change callback works", {
-  session <- shiny::Mock'shiny'Session$new()
+  session <- shiny::MockShinySession$new()
 
   test_data <- reactive({
     data.frame(id = 1:3, name = c("A", "B", "C"))

@@ -3,7 +3,7 @@
 
 test_that("register_leaflet validates inputs", {
   # Mock session and registry
-  session <- shiny::Mock'shiny'Session$new()
+  session <- shiny::MockShinySession$new()
   registry <- create_link_registry(session)
   
   # Test with valid inputs
@@ -46,7 +46,7 @@ test_that("register_leaflet validates inputs", {
 })
 
 test_that("register_leaflet creates proper component registration", {
-  session <- shiny::Mock'shiny'Session$new()
+  session <- shiny::MockShinySession$new()
 
   registry <- create_link_registry(session)
   
@@ -92,7 +92,7 @@ test_that("register_leaflet creates proper component registration", {
 test_that("register_leaflet uses default column names", {
   skip_if_not_installed("leaflet")
   
-  session <- shiny::Mock'shiny'Session$new()
+  session <- shiny::MockShinySession$new()
   registry <- create_link_registry(session)
   
   # Data with default column names
@@ -123,7 +123,7 @@ test_that("register_leaflet requires leaflet package", {
   if (requireNamespace("leaflet", quietly = TRUE)) {
     skip("leaflet package is available, cannot test missing package scenario")
   } else {
-    session <- shiny::Mock'shiny'Session$new()
+    session <- shiny::MockShinySession$new()
     registry <- create_link_registry(session)
     
     test_data <- reactive({
@@ -144,7 +144,7 @@ test_that("register_leaflet requires leaflet package", {
 test_that("setup_leaflet_observers creates proper observers", {
   skip_if_not_installed("leaflet")
   
-  session <- shiny::Mock'shiny'Session$new()
+  session <- shiny::MockShinySession$new()
   
   # Mock reactive values for shared state
   shared_state <- shiny::reactiveValues(
@@ -236,7 +236,7 @@ test_that("apply_default_leaflet_behavior handles selection and deselection", {
 test_that("leaflet handles different data types in shared column", {
   skip_if_not_installed("leaflet")
   
-  session <- shiny::Mock'shiny'Session$new()
+  session <- shiny::MockShinySession$new()
   
   registry <- create_link_registry(session)
   
@@ -294,7 +294,7 @@ test_that("leaflet handles different data types in shared column", {
 test_that("leaflet integration with registry selection works", {
   skip_if_not_installed("leaflet")
   
-  session <- shiny::Mock'shiny'Session$new()
+  session <- shiny::MockShinySession$new()
   
   test_data <- reactive({
     data.frame(
@@ -338,7 +338,7 @@ test_that("leaflet integration with registry selection works", {
 test_that("leaflet handles coordinate validation", {
   skip_if_not_installed("leaflet")
   
-  session <- shiny::Mock'shiny'Session$new()
+  session <- shiny::MockShinySession$new()
   
   # Test with invalid coordinates (should still register but may cause issues)
   invalid_coords_data <- reactive({
@@ -366,7 +366,7 @@ test_that("leaflet handles sf objects correctly", {
   skip_if_not_installed("leaflet")
   skip_if_not_installed("sf")
   
-  session <- shiny::Mock'shiny'Session$new()
+  session <- shiny::MockShinySession$new()
   
   # Create mock sf object
   mock_sf_data <- reactive({
@@ -459,7 +459,7 @@ test_that("sf integration works with link_plots", {
   skip_if_not_installed("sf")
   skip_if_not_installed("DT")
   
-  session <- shiny::Mock'shiny'Session$new()
+  session <- shiny::MockShinySession$new()
   
   # Create sf data
   points <- sf::st_sfc(

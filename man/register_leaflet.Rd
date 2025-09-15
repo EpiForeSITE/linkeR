@@ -42,9 +42,9 @@ No return value, called for side effects.
 \code{register_leaflet} registers a Leaflet map for linking with other components.
 }
 \examples{
-\dontrun{
+\donttest{
   # Create a mock session for the example
-  session <- shiny::Mock'shiny'Session$new()
+  session <- shiny::MockShinySession$new()
 
   # Create a registry
   registry <- create_link_registry(session)

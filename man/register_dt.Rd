@@ -33,9 +33,9 @@ NULL (invisible). This function is called for its side effects of registering th
 \code{register_dt} registers a DT datatable for linking with other components.
 }
 \examples{
-\dontrun{
+\donttest{
   # Create a mock session for the example
-  session <- shiny::Mock'shiny'Session$new()
+  session <- shiny::MockShinySession$new()
 
   # Create a registry
   registry <- create_link_registry(session)
