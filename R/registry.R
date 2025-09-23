@@ -24,9 +24,12 @@
 #'   }
 #'   \item{clear_all()}{Remove all registered components and reset shared state}
 #'   \item{set_selection(selected_id, source_component_id)}{
-#'     Programmatically update the selection state
+#'     Programmatically update the selection state (single selection)
 #'   }
-#'   \item{get_selection()}{Get current selection as list with selected_id and source}
+#'   \item{set_multiple_selection(selected_ids, source_component_id)}{
+#'     Programmatically update the selection state (multiple selections)
+#'   }
+#'   \item{get_selection()}{Get current selection as list with selected_id, selected_ids and source}
 #'   \item{get_on_selection_change()}{Return the on_selection_change callback function}
 #'   \item{get_components()}{Get registry components info (for debugging)}
 #'   \item{get_shared_state()}{Get current shared state (for debugging)}
@@ -129,6 +132,7 @@ create_link_registry <- function(session, on_selection_change = NULL) {
       components <<- list()
       # Reset shared state
       shared_state$selected_id <<- NULL
+      shared_state$selected_ids <<- character(0)
       shared_state$selection_source <<- NULL
     },
 
@@ -142,6 +146,13 @@ create_link_registry <- function(session, on_selection_change = NULL) {
 
       shared_state$selected_id <- selected_id
       shared_state$selection_source <- source_component_id
+      
+      # Update multiple selections for backward compatibility
+      if (is.null(selected_id)) {
+        shared_state$selected_ids <- character(0)
+      } else {
+        shared_state$selected_ids <- as.character(selected_id)
+      }
 
       # Call user callback if provided
       if (!is.null(on_selection_change) && is.function(on_selection_change)) {
@@ -169,11 +180,67 @@ create_link_registry <- function(session, on_selection_change = NULL) {
         )
       }
     },
+    
+    # Update multiple selections programmatically
+    set_multiple_selection = function(selected_ids, source_component_id = "programmatic") {
+      # Ensure selected_ids is a character vector
+      if (is.null(selected_ids)) {
+        selected_ids <- character(0)
+      } else {
+        selected_ids <- as.character(selected_ids)
+      }
+      
+      # Only proceed if selection actually changed
+      if (identical(shared_state$selected_ids, selected_ids) &&
+        identical(shared_state$selection_source, source_component_id)) {
+        return(invisible(NULL)) # No change, exit early
+      }
 
-    # Get currently selected ID
+      shared_state$selected_ids <- selected_ids
+      shared_state$selection_source <- source_component_id
+      
+      # Update single selection for backward compatibility (use first selection or NULL)
+      if (length(selected_ids) == 0) {
+        shared_state$selected_id <- NULL
+      } else {
+        shared_state$selected_id <- selected_ids[1]
+      }
+
+      # Call user callback if provided
+      if (!is.null(on_selection_change) && is.function(on_selection_change)) {
+        # Get selected data for all selected IDs
+        selected_data <- NULL
+        if (length(selected_ids) > 0) {
+          # Find the data from any component (they should all have the same ID)
+          for (comp_id in names(components)) {
+            comp_data <- components[[comp_id]]$data_reactive()
+            match_rows <- comp_data[comp_data[[components[[comp_id]]$shared_id_column]] %in% selected_ids, ]
+            if (nrow(match_rows) > 0) {
+              selected_data <- match_rows
+              break
+            }
+          }
+        }
+
+        tryCatch(
+          {
+            # For backward compatibility, pass the first selected_id for single selection callbacks
+            first_id <- if (length(selected_ids) > 0) selected_ids[1] else NULL
+            first_data <- if (!is.null(selected_data) && nrow(selected_data) > 0) selected_data[1, ] else NULL
+            on_selection_change(first_id, first_data, source_component_id, top_level_session)
+          },
+          error = function(e) {
+            warning("Error in on_selection_change callback: ", e$message)
+          }
+        )
+      }
+    },
+
+    # Get currently selected ID(s)
     get_selection = function() {
       list(
         selected_id = shared_state$selected_id,
+        selected_ids = if(is.null(shared_state$selected_ids)) character(0) else shared_state$selected_ids,
         source = shared_state$selection_source
       )
     },
@@ -202,11 +269,12 @@ create_link_registry <- function(session, on_selection_change = NULL) {
         {
           list(
             selected_id = shared_state$selected_id,
+            selected_ids = if(is.null(shared_state$selected_ids)) character(0) else shared_state$selected_ids,
             selection_source = shared_state$selection_source
           )
         },
         error = function(e) {
-          list(selected_id = NULL, selection_source = NULL)
+          list(selected_id = NULL, selected_ids = character(0), selection_source = NULL)
         }
       )
     }

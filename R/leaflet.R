@@ -191,8 +191,26 @@ setup_leaflet_observers <- function(component_id, session, components, shared_st
     ignoreNULL = FALSE,
     ignoreInit = TRUE
   )
+  
+  # Observer for responding to multiple selections from other components
+  observer3 <- shiny::observeEvent(shared_state$selected_ids,
+    {
+      # Only respond if selection came from a different component and we have multiple selections
+      if (!is.null(shared_state$selection_source) &&
+        shared_state$selection_source != component_id &&
+        !is.null(shared_state$selected_ids) &&
+        length(shared_state$selected_ids) > 1) {
+        selected_ids <- shared_state$selected_ids
 
-  return(list(observer1, observer2))
+        # Update visual state for multiple selections
+        update_leaflet_multiple_selection(component_id, selected_ids, session, components)
+      }
+    },
+    ignoreNULL = FALSE,
+    ignoreInit = TRUE
+  )
+
+  return(list(observer1, observer2, observer3))
 }
 
 #' Apply Default Leaflet Behavior for Selection Events
@@ -257,6 +275,86 @@ apply_default_leaflet_behavior <- function(map_proxy, selected_data, component_i
         lat = selected_data[[component_info$config$lat_col]],
         popup = popup_content
       )
+  } else {
+    # Handle deselection
+    map_proxy %>% leaflet::clearPopups()
+  }
+}
+
+#' Apply Default Leaflet Behavior for Multiple Selections
+#'
+#' `apply_default_leaflet_multiple_behavior` is a helper function that provides consistent default behavior for leaflet maps
+#' when multiple items are selected. It creates visual feedback for all selected markers.
+#'
+#' @param map_proxy Leaflet proxy object for updating the map
+#' @param selected_data Data frame containing all selected rows with geographic data
+#' @param component_info List containing component configuration including shared_id_column and config settings
+#'
+#' @details
+#' For multiple selections, this function:
+#' \itemize{
+#'   \item Clears existing popups
+#'   \item Calculates the bounding box of all selected points
+#'   \item Fits the map view to show all selected markers
+#'   \item Adds popups to all selected markers with summary information
+#' }
+#'
+#' @examples
+#' \dontrun{
+#' # Apply default behavior when multiple items are selected
+#' apply_default_leaflet_multiple_behavior(map_proxy, selected_rows, component_info)
+#' }
+apply_default_leaflet_multiple_behavior <- function(map_proxy, selected_data, component_info) {
+  if (!is.null(selected_data) && nrow(selected_data) > 0) {
+    # Get longitude and latitude columns
+    lng_col <- component_info$config$lng_col
+    lat_col <- component_info$config$lat_col
+    id_col <- component_info$shared_id_column
+    
+    # Calculate bounds for fitting view
+    lngs <- selected_data[[lng_col]]
+    lats <- selected_data[[lat_col]]
+    
+    # Clear existing popups first
+    map_proxy %>% leaflet::clearPopups()
+    
+    if (length(lngs) == 1) {
+      # Single point - zoom to it
+      popup_content <- paste0("<b>Selected</b><br>ID: ", selected_data[[id_col]][1])
+      map_proxy %>%
+        leaflet::setView(
+          lng = lngs[1],
+          lat = lats[1],
+          zoom = component_info$config$highlight_zoom
+        ) %>%
+        leaflet::addPopups(
+          lng = lngs[1],
+          lat = lats[1],
+          popup = popup_content
+        )
+    } else {
+      # Multiple points - fit bounds and add popups to all
+      map_proxy %>%
+        leaflet::fitBounds(
+          lng1 = min(lngs, na.rm = TRUE),
+          lat1 = min(lats, na.rm = TRUE),
+          lng2 = max(lngs, na.rm = TRUE),
+          lat2 = max(lats, na.rm = TRUE)
+        )
+      
+      # Add popup to each selected marker
+      for (i in 1:nrow(selected_data)) {
+        popup_content <- paste0("<b>Selected (", i, " of ", nrow(selected_data), ")</b><br>")
+        popup_content <- paste0(popup_content, "ID: ", selected_data[[id_col]][i])
+        
+        map_proxy %>%
+          leaflet::addPopups(
+            lng = selected_data[[lng_col]][i],
+            lat = selected_data[[lat_col]][i],
+            popup = popup_content
+          )
+      }
+    }
   } else {
     # Handle deselection
     map_proxy %>% leaflet::clearPopups()
@@ -385,6 +483,136 @@ update_leaflet_selection <- function(component_id, selected_id, session, compone
     }
   } else {
     # Handle deselection
+    if (!is.null(component_info$config$click_handler) && is.function(component_info$config$click_handler)) {
+      # Let user's handler deal with deselection
+      component_info$config$click_handler(map_proxy, NULL, session)
+    } else {
+      # Default deselection (already cleared popups above)
+    }
+  }
+}
+
+#' Update Leaflet Multiple Selection Based on Shared IDs
+#'
+#' `update_leaflet_multiple_selection` updates a Leaflet map component to reflect multiple new selection states.
+#' This function handles highlighting multiple markers and provides visual feedback for multiple selected items.
+#'
+#' @param component_id Character string. The ID of the leaflet component to update.
+#' @param selected_ids Character vector. The shared ID values to select. If empty, deselects all markers.
+#' @param session Shiny session object for the current user session.
+#' @param components List containing component configuration information, including
+#'   data reactives, shared ID columns, and optional custom click handlers.
+#'
+#' @details
+#' The function performs the following steps:
+#' \itemize{
+#'   \item Validates that the leaflet package is available
+#'   \item Retrieves current data from the component's reactive data source
+#'   \item Validates that required columns exist in the data
+#'   \item Creates a leaflet proxy for programmatic map manipulation
+#'   \item Finds all matching markers based on the shared IDs
+#'   \item Applies visual highlighting for multiple selections
+#' }
+#'
+#' For multiple selections, this function will:
+#' \itemize{
+#'   \item Clear existing popups and highlights
+#'   \item Apply highlighting to all selected markers
+#'   \item For custom handlers, provide all selected data
+#'   \item For default behavior, show a summary popup if markers are close together
+#' }
+#'
+#' @return NULL (invisible). Function is called for side effects only.
+#'
+#' @examples
+#' \dontrun{
+#' # Update leaflet selection when IDs c("LOC_1", "LOC_2") are selected
+#' update_leaflet_multiple_selection("my_map", c("LOC_1", "LOC_2"), session, components)
+#' 
+#' # Deselect all markers
+#' update_leaflet_multiple_selection("my_map", character(0), session, components)
+#' }
+update_leaflet_multiple_selection <- function(component_id, selected_ids, session, components) {
+  if (!requireNamespace("leaflet", quietly = TRUE)) {
+    return()
+  }
+
+  component_info <- components[[component_id]]
+  current_data <- component_info$data_reactive()
+
+  # For sf integration: ensure we have processed data with lng/lat columns
+  if (!all(c(component_info$config$lng_col, component_info$config$lat_col) %in% names(current_data))) {
+    # Try to process the data if it's an sf object
+    if (requireNamespace("sf", quietly = TRUE) && inherits(current_data, "sf")) {
+      current_data <- process_sf_data(current_data, component_info$config$lng_col, component_info$config$lat_col)
+    } else {
+      # Validate required columns exist
+      required_cols <- c(
+        component_info$shared_id_column,
+        component_info$config$lng_col,
+        component_info$config$lat_col
+      )
+      
+      missing_cols <- setdiff(required_cols, names(current_data))
+      if (length(missing_cols) > 0) {
+        warning(
+          "Required columns missing from leaflet data: ",
+          paste(missing_cols, collapse = ", "),
+          ". Available columns: ", paste(names(current_data), collapse = ", ")
+        )
+        return()
+      }
+    }
+  }
+
+  # Get map proxy
+  map_proxy <- leaflet::leafletProxy(component_id, session = session)
+
+  # Clear existing popups first
+  map_proxy %>% leaflet::clearPopups()
+
+  if (length(selected_ids) > 0) {
+    # Find all selected data
+    selected_data <- current_data[current_data[[component_info$shared_id_column]] %in% selected_ids, ]
+    
+    if (nrow(selected_data) > 0) {
+      # For custom handlers, prepare data appropriately
+      handler_selected_data <- selected_data
+      if (!is.null(component_info$config$click_handler) && 
+          !is.null(component_info$config$original_data_reactive)) {
+        # Get original data for custom handlers that might expect sf structure
+        original_data <- component_info$config$original_data_reactive()
+
+        if (inherits(original_data, "sf")) {
+          # require sf namespace for coordinate extraction
+          if (!requireNamespace("sf", quietly = TRUE)) {
+            warning("sf package is required for handling sf objects in leaflet linking")
+            return()
+          }
+          
+          # Add coordinates to original data for handlers
+          coords <- sf::st_coordinates(original_data)
+          original_data$longitude <- coords[, 1]
+          original_data$latitude <- coords[, 2]
+          original_data <- sf::st_drop_geometry(original_data)
+        }
+        handler_rows <- original_data[original_data[[component_info$shared_id_column]] %in% selected_ids, ]
+        if (nrow(handler_rows) > 0) {
+          handler_selected_data <- handler_rows
+        }
+      }
+
+      # Use user's custom click handler if provided
+      if (!is.null(component_info$config$click_handler) && is.function(component_info$config$click_handler)) {
+        # Call the user's custom handler with all selected data
+        component_info$config$click_handler(map_proxy, handler_selected_data, session)
+      } else {
+        # Default behavior for multiple selections: highlight all selected markers
+        apply_default_leaflet_multiple_behavior(map_proxy, selected_data, component_info)
+      }
+    }
+  } else {
+    # Handle deselection (same as single selection)
     if (!is.null(component_info$config$click_handler) && is.function(component_info$config$click_handler)) {
       # Let user's handler deal with deselection
       component_info$config$click_handler(map_proxy, NULL, session)
