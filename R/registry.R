@@ -291,7 +291,7 @@ create_link_registry <- function(session, on_selection_change = NULL) {
 #'
 #' @param component_id Character string. Unique identifier for the component.
 #' @param type Character string. The type of component to set up observers for.
-#'   Currently supports "leaflet" and "datatable".
+#'   Currently supports "leaflet", "datatable", and "plotly".
 #' @param session Shiny session object. The current Shiny session.
 #' @param components List. Collection of all components in the application.
 #' @param shared_state Reactive values object. Shared state across components.
@@ -307,6 +307,7 @@ setup_component_observers <- function(component_id, type, session, components, s
   observers <- switch(type,
     "leaflet" = setup_leaflet_observers(component_id, session, components, shared_state, on_selection_change, registry),
     "datatable" = setup_datatable_observers(component_id, session, components, shared_state, on_selection_change, registry),
+    "plotly" = setup_plotly_observers(component_id, session, components, shared_state, on_selection_change, registry),
     stop("Unsupported component type: ", type)
   )
 

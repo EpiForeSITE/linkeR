@@ -270,3 +270,79 @@ test_that("registry handles duplicate component names", {
   components <- registry$get_components()
   expect_length(components, 1)  # Should only have one
 })
+
+test_that("registry multiple selection functionality works", {
+  session <- shiny::MockShinySession$new()
+  
+  registry <- create_link_registry(session)
+  
+  # Test initial state
+  selection <- isolate(registry$get_selection())
+  expect_null(selection$selected_id)
+  expect_equal(selection$selected_ids, character(0))
+  expect_null(selection$source)
+  
+  # Test setting multiple selection
+  isolate(registry$set_multiple_selection(c("A", "B", "C"), "test_source"))
+  selection <- isolate(registry$get_selection())
+  expect_equal(selection$selected_ids, c("A", "B", "C"))
+  expect_equal(selection$selected_id, "A")  # First item for backward compatibility
+  expect_equal(selection$source, "test_source")
+  
+  # Test single selection updates selected_ids
+  isolate(registry$set_selection("X", "single_source"))
+  selection <- isolate(registry$get_selection())
+  expect_equal(selection$selected_id, "X")
+  expect_equal(selection$selected_ids, "X")
+  expect_equal(selection$source, "single_source")
+  
+  # Test clearing multiple selection
+  isolate(registry$set_multiple_selection(character(0), "clear_source"))
+  selection <- isolate(registry$get_selection())
+  expect_null(selection$selected_id)
+  expect_equal(selection$selected_ids, character(0))
+  expect_equal(selection$source, "clear_source")
+})
+
+test_that("registry multiple selection callback works", {
+  session <- shiny::MockShinySession$new()
+  
+  # Track callbacks
+  callback_calls <- list()
+  test_callback <- function(selected_id, selected_data, source_id, session) {
+    callback_calls <<- append(callback_calls, list(list(
+      selected_id = selected_id,
+      selected_data = selected_data,
+      source_id = source_id
+    )))
+  }
+  
+  registry <- create_link_registry(session, on_selection_change = test_callback)
+  
+  # Add mock data
+  test_data <- reactive({
+    data.frame(
+      id = c("A", "B", "C"),
+      name = c("Alice", "Bob", "Charlie"),
+      value = c(10, 20, 30)
+    )
+  })
+  register_dt(session, registry, "test_table", test_data, "id")
+  
+  # Test multiple selection callback
+  isolate(registry$set_multiple_selection(c("B", "C"), "multi_source"))
+  
+  # Should have one callback
+  expect_length(callback_calls, 1)
+  # For backward compatibility, callback gets first selected item
+  expect_equal(callback_calls[[1]]$selected_id, "B")
+  expect_equal(callback_calls[[1]]$source_id, "multi_source")
+  expect_equal(callback_calls[[1]]$selected_data$name, "Bob")
+  
+  # Test single selection callback
+  isolate(registry$set_selection("A", "single_source"))
+  expect_length(callback_calls, 2)
+  expect_equal(callback_calls[[2]]$selected_id, "A")
+  expect_equal(callback_calls[[2]]$source_id, "single_source")
+  expect_equal(callback_calls[[2]]$selected_data$name, "Alice")
+})
