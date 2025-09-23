@@ -127,22 +127,42 @@ setup_datatable_observers <- function(component_id, session, components, shared_
         component_info <- components[[component_id]]
         current_data <- component_info$data_reactive()
 
-        # Get the selected ID (use first selection if multiple)
-        selected_id <- current_data[[component_info$shared_id_column]][selected_rows[1]]
-
-        # THIS IS CORRECT - USER CLICK SHOULD CALL set_selection
-        if (!is.null(registry) && !is.null(registry$set_selection)) {
-          registry$set_selection(selected_id, component_id)
+        # Get all selected IDs for multiple selection support
+        selected_ids <- current_data[[component_info$shared_id_column]][selected_rows]
+        
+        # Handle multiple vs single selections
+        if (length(selected_ids) > 1) {
+          # Multiple selections - use new multiple selection method
+          if (!is.null(registry) && !is.null(registry$set_multiple_selection)) {
+            registry$set_multiple_selection(selected_ids, component_id)
+          } else if (!is.null(registry) && !is.null(registry$set_selection)) {
+            # Fallback to single selection (first item) for backward compatibility
+            registry$set_selection(selected_ids[1], component_id)
+          } else {
+            shared_state$selected_id <- selected_ids[1]
+            shared_state$selected_ids <- selected_ids
+            shared_state$selection_source <- component_id
+          }
         } else {
-          shared_state$selected_id <- selected_id
-          shared_state$selection_source <- component_id
+          # Single selection - use existing method
+          selected_id <- selected_ids[1]
+          if (!is.null(registry) && !is.null(registry$set_selection)) {
+            registry$set_selection(selected_id, component_id)
+          } else {
+            shared_state$selected_id <- selected_id
+            shared_state$selected_ids <- selected_id
+            shared_state$selection_source <- component_id
+          }
         }
       } else {
         # Clear selection
-        if (!is.null(registry) && !is.null(registry$set_selection)) {
+        if (!is.null(registry) && !is.null(registry$set_multiple_selection)) {
+          registry$set_multiple_selection(character(0), component_id)
+        } else if (!is.null(registry) && !is.null(registry$set_selection)) {
           registry$set_selection(NULL, component_id)
         } else {
           shared_state$selected_id <- NULL
+          shared_state$selected_ids <- character(0)
           shared_state$selection_source <- component_id
         }
       }
@@ -174,8 +194,33 @@ setup_datatable_observers <- function(component_id, session, components, shared_
     ignoreNULL = FALSE,
     ignoreInit = TRUE
   )
+  
+  # Observer for responding to multiple selections from other components
+  observer3 <- shiny::observeEvent(shared_state$selected_ids,
+    {
+      # Only respond if selection came from a different component and we have selected_ids
+      if (!is.null(shared_state$selection_source) &&
+        shared_state$selection_source != component_id &&
+        !is.null(shared_state$selected_ids)) {
+        selected_ids <- shared_state$selected_ids
 
-  return(list(observer1, observer2))
+        # Set session-level flag to prevent recursive calls
+        session$userData[[flag_name]] <- TRUE
+
+        # Update visual state for multiple selections
+        update_dt_multiple_selection(component_id, selected_ids, session, components)
+
+        # Reset flag after a short delay
+        later::later(function() {
+          session$userData[[flag_name]] <- FALSE
+        }, delay = 0.1) # 100ms delay
+      }
+    },
+    ignoreNULL = FALSE,
+    ignoreInit = TRUE
+  )
+
+  return(list(observer1, observer2, observer3))
 }
 
 # Simplify update_dt_selection back to basic version:
@@ -253,6 +298,89 @@ update_dt_selection <- function(component_id, selected_id, session, components) 
     }
   } else {
     # Handle deselection
+    if (!is.null(component_info$config$click_handler) && is.function(component_info$config$click_handler)) {
+      component_info$config$click_handler(dt_proxy, NULL, session)
+    } else {
+      # Default deselection behavior
+      DT::selectRows(dt_proxy, selected = integer(0))
+    }
+  }
+}
+
+#' Update DT Multiple Selection Based on Shared IDs
+#'
+#' `update_dt_multiple_selection` Updates the selection state of a DataTable (DT) component when multiple shared IDs
+#' are selected or deselected from another linked component. This function handles
+#' both custom click handlers and default selection behavior for multiple rows.
+#'
+#' @param component_id Character string. The ID of the DT component to update.
+#' @param selected_ids Character vector. The shared ID values to select. If empty, deselects all rows.
+#' @param session Shiny session object for the current user session.
+#' @param components List containing component configuration information, including
+#'   data reactives, shared ID columns, and optional custom click handlers.
+#'
+#' @details
+#' The function performs the following steps:
+#' \itemize{
+#'   \item Validates that the DT package is available
+#'   \item Retrieves current data from the component's reactive data source
+#'   \item Validates that the shared ID column exists in the data
+#'   \item Creates a DT proxy for programmatic table manipulation
+#'   \item Finds the matching rows based on the shared IDs
+#'   \item Executes either custom click handler or default selection behavior
+#' }
+#'
+#' @section Custom Click Handlers:
+#' If a custom click handler is provided in the component configuration
+#' (\code{component_info$config$click_handler}), it will be called with
+#' the DT proxy, selected data (or NULL for deselection), and session.
+#' For multiple selections, the handler is called with all selected data.
+#'
+#' @return NULL (invisible). Function is called for side effects only.
+#'
+#' @examples
+#' \dontrun{
+#' # Update DT selection when IDs c("123", "456") are selected
+#' update_dt_multiple_selection("my_table", c("123", "456"), session, components)
+#' 
+#' # Deselect all rows
+#' update_dt_multiple_selection("my_table", character(0), session, components)
+#' }
+update_dt_multiple_selection <- function(component_id, selected_ids, session, components) {
+  if (!requireNamespace("DT", quietly = TRUE)) {
+    return()
+  }
+
+  component_info <- components[[component_id]]
+  current_data <- component_info$data_reactive()
+
+  # Validate shared ID column exists
+  if (!component_info$shared_id_column %in% names(current_data)) {
+    warning("Shared ID column '", component_info$shared_id_column, "' not found in DT data for component: ", component_id)
+    return()
+  }
+
+  # Get DT proxy
+  dt_proxy <- DT::dataTableProxy(component_id, session = session)
+
+  if (length(selected_ids) > 0) {
+    # Find matching rows
+    row_indices <- which(current_data[[component_info$shared_id_column]] %in% selected_ids)
+
+    if (length(row_indices) > 0) {
+      selected_data <- current_data[row_indices, ]
+
+      # Use user's custom click handler if provided
+      if (!is.null(component_info$config$click_handler) && is.function(component_info$config$click_handler)) {
+        component_info$config$click_handler(dt_proxy, selected_data, session)
+      } else {
+        # Default behavior: select all matching rows
+        # The flag in the observer should prevent the event from being processed
+        DT::selectRows(dt_proxy, selected = row_indices)
+      }
+    }
+  } else {
+    # Handle deselection (same as single selection)
     if (!is.null(component_info$config$click_handler) && is.function(component_info$config$click_handler)) {
       component_info$config$click_handler(dt_proxy, NULL, session)
     } else {

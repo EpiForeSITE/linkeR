@@ -134,8 +134,9 @@ ui <- fluidPage(
       br(),
       div(
         class = "alert alert-success",
-        h4("Scenario 3: Multiple Component Linking"),
-        p("Map ↔ Table ↔ Chart ↔ Summary. All components linked bidirectionally.")
+        h4("Scenario 3: Multiple Component Linking with Multiple Selection Support"),
+        p("Map ↔ Table ↔ Chart ↔ Summary. All components linked bidirectionally."),
+        p("New: Supports multiple selections! Use Ctrl+click in table, brush selection in chart.")
       ),
       fluidRow(
         column(
@@ -455,7 +456,7 @@ server <- function(input, output, session) {
 
     datatable(
       multi_data,
-      selection = "single",
+      selection = "multiple", # Enable multiple selection
       rownames = FALSE,
       options = list(pageLength = 6, scrollX = TRUE)
     ) %>%
@@ -483,9 +484,10 @@ server <- function(input, output, session) {
         xaxis = list(title = "Number of Employees"),
         yaxis = list(title = "Annual Revenue ($)"),
         showlegend = TRUE,
-        legend = list(title = list(text = "Business Category"))
+        legend = list(title = list(text = "Business Category")),
+        dragmode = "select" # Enable brush selection for multiple selection support
       ) %>%
-      config(displayModeBar = FALSE) # Hide the plotly toolbar for cleaner look
+      config(displayModeBar = TRUE, modeBarButtonsToRemove = c("lasso2d")) # Show toolbar for brush selection
 
     return(p)
   })
@@ -566,16 +568,19 @@ server <- function(input, output, session) {
         shared_id_column = "business_id"
       )
 
-      # Add plotly click handling
-      # This is essentially an observer for plotly clicks to update the registry selection manually
-      # This is necessary because plotly does not automatically trigger the registry
-      # This paradigm allows for any custom behavior to access the registry
-      observeEvent(event_data("plotly_click", source = "multi_chart"), {
-        clicked_data <- event_data("plotly_click", source = "multi_chart")
-        if (!is.null(clicked_data) && !is.null(clicked_data$key)) {
-          registries$multi$set_selection(clicked_data$key, "multi_chart")
-        }
-      })
+      # Register plotly component for better integration and multiple selection support
+      # This replaces the manual event handling with automatic registry integration
+      linkeR::register_plotly(
+        session = session,
+        registry = registries$multi,
+        plotly_output_id = "multi_chart",
+        data_reactive = business_data,
+        shared_id_column = "business_id",
+        source_id = "multi_chart"
+      )
+      
+      # Note: The manual observeEvent for plotly_click is no longer needed
+      # The register_plotly function handles both click and brush selections automatically
     }
   })
 
@@ -583,15 +588,26 @@ server <- function(input, output, session) {
   output$multi_selection <- renderText({
     if (!is.null(registries$multi)) {
       selection <- registries$multi$get_selection()
-      if (!is.null(selection$selected_id)) {
+      if (length(selection$selected_ids) > 0) {
         data <- business_data()
-        selected <- data[data$business_id == selection$selected_id, ]
+        selected <- data[data$business_id %in% selection$selected_ids, ]
         if (nrow(selected) > 0) {
-          return(paste0(
-            "Selected: ", selected$name, "\n",
-            "Source: ", selection$source, "\n",
-            "Category: ", selected$category
-          ))
+          if (nrow(selected) == 1) {
+            # Single selection
+            return(paste0(
+              "Selected: ", selected$name, "\n",
+              "Source: ", selection$source, "\n",
+              "Category: ", selected$category
+            ))
+          } else {
+            # Multiple selections
+            return(paste0(
+              "Selected: ", nrow(selected), " businesses\n",
+              "Source: ", selection$source, "\n",
+              "Categories: ", paste(unique(selected$category), collapse = ", "), "\n",
+              "Total Revenue: $", format(sum(selected$annual_revenue), big.mark = ",")
+            ))
+          }
         }
       }
     }
@@ -601,7 +617,7 @@ server <- function(input, output, session) {
   # Clear multi selection
   observeEvent(input$clear_multi_selection, {
     if (!is.null(registries$multi)) {
-      registries$multi$set_selection(NULL, "manual_clear")
+      registries$multi$set_multiple_selection(character(0), "manual_clear")
     }
   })
 
