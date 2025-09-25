@@ -2,6 +2,7 @@
 
 export(create_link_registry)
 export(link_plots)
+export(prepare_plotly_linking)
 export(process_sf_data)
 export(register_dt)
 export(register_leaflet)

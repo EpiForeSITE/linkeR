@@ -1,3 +1,127 @@
+#' Extract ID from Plotly Event Data
+#'
+#' Robust extraction of shared ID from plotly click events, handling multiple traces
+#' and different plotly configurations.
+#'
+#' @param event_data Plotly event data from event_data()
+#' @param component_info Component information from registry
+#' @return The extracted ID or NULL if extraction fails
+#' @keywords internal
+extract_plotly_id <- function(event_data, component_info) {
+  if (is.null(event_data) || nrow(event_data) == 0) {
+    return(NULL)
+  }
+  
+  # Method 1: Try customdata (most reliable for multiple traces)
+  if ("customdata" %in% names(event_data) && !is.null(event_data$customdata)) {
+    id_val <- event_data$customdata[1]
+    if (!is.null(id_val) && !is.na(id_val)) {
+      cat("DEBUG: Got ID from customdata:", id_val, "\n")
+      return(id_val)
+    }
+  }
+  
+  # Method 2: Try key (works for single trace)
+  if ("key" %in% names(event_data) && !is.null(event_data$key)) {
+    id_val <- event_data$key[1]
+    if (!is.null(id_val) && !is.na(id_val)) {
+      cat("DEBUG: Got ID from key:", id_val, "\n")
+      return(id_val)
+    }
+  }
+  
+  # Method 3: Coordinate-based lookup (fallback)
+  if ("x" %in% names(event_data) && "y" %in% names(event_data)) {
+    current_data <- component_info$data_reactive()
+    clicked_x <- event_data$x[1]
+    clicked_y <- event_data$y[1]
+    
+    cat("DEBUG: Attempting coordinate-based lookup for x=", clicked_x, ", y=", clicked_y, "\n")
+    
+    # Find matching point by coordinates (with tolerance for floating point)
+    for (i in seq_len(nrow(current_data))) {
+      # We need to know which columns represent x and y
+      # This is tricky since we don't know the plot structure
+      # For now, try to find exact matches in numeric columns
+      numeric_cols <- sapply(current_data, is.numeric)
+      
+      for (x_col in names(current_data)[numeric_cols]) {
+        for (y_col in names(current_data)[numeric_cols]) {
+          if (x_col != y_col && 
+              abs(current_data[[x_col]][i] - clicked_x) < 1e-10 && 
+              abs(current_data[[y_col]][i] - clicked_y) < 1e-10) {
+            id_val <- current_data[[component_info$shared_id_column]][i]
+            cat("DEBUG: Got ID from coordinates (", x_col, ",", y_col, "):", id_val, "\n")
+            return(id_val)
+          }
+        }
+      }
+    }
+  }
+  
+  # Method 4: Last resort - pointNumber mapping (unreliable with multiple traces)
+  if ("pointNumber" %in% names(event_data)) {
+    current_data <- component_info$data_reactive()
+    point_number <- event_data$pointNumber[1] + 1  # plotly is 0-indexed, R is 1-indexed
+    
+    if (point_number > 0 && point_number <= nrow(current_data)) {
+      id_val <- current_data[[component_info$shared_id_column]][point_number]
+      cat("DEBUG: Got ID from pointNumber (UNRELIABLE):", id_val, "\n")
+      warning("Using pointNumber for plotly ID extraction - this may be unreliable with multiple traces. Consider using customdata or key parameters.")
+      return(id_val)
+    }
+  }
+  
+  cat("DEBUG: All ID extraction methods failed\n")
+  return(NULL)
+}
+
+#' Prepare Plotly for Linking
+#'
+#' Utility function to automatically add required parameters to a plotly object
+#' for reliable linking, regardless of plot structure (single/multiple traces).
+#'
+#' @param plotly_obj A plotly object created with plot_ly()
+#' @param id_column Character string: name of the ID column in the data
+#' @param source Character string: plotly source identifier
+#' @returns Modified plotly object with linking parameters added
+#' @export
+#' @examples
+#' \dontrun{
+#' # Instead of manually adding customdata/key:
+#' p <- plot_ly(data = my_data, x = ~x_col, y = ~y_col, color = ~category)
+#' p <- prepare_plotly_linking(p, "my_id_column", "my_source")
+#' }
+prepare_plotly_linking <- function(plotly_obj, id_column, source) {
+  if (!requireNamespace("plotly", quietly = TRUE)) {
+    stop("plotly package is required")
+  }
+  
+  # Get the original data from the plotly object
+  if (is.null(plotly_obj$x$attrs) || length(plotly_obj$x$attrs) == 0) {
+    warning("Cannot extract data from plotly object. Please add customdata = ~", id_column, " manually.")
+    return(plotly_obj)
+  }
+  
+  # Add customdata to the first (main) attribute set
+  # This should work even with multiple traces
+  if (is.null(plotly_obj$x$attrs[[1]]$customdata)) {
+    # Create the customdata reference
+    id_formula <- as.formula(paste("~", id_column))
+    plotly_obj$x$attrs[[1]]$customdata <- id_formula
+    
+    message("Added customdata = ~", id_column, " to plotly object")
+  }
+  
+  # Ensure source is set
+  if (is.null(plotly_obj$x$source)) {
+    plotly_obj$x$source <- source
+    message("Added source = '", source, "' to plotly object")
+  }
+  
+  return(plotly_obj)
+}
+
 #' Register a Plotly Component
 #'
 #' `register_plotly` registers a Plotly component for linking with other components.
@@ -36,6 +160,14 @@ register_plotly <- function(session, registry, plotly_output_id, data_reactive, 
   if (is.null(source)) {
     source <- plotly_output_id
   }
+  
+  # Provide helpful guidance for plotly linking
+  message("plotly component '", plotly_output_id, "' registered for linking.")
+  message("For reliable linking, ensure your plot_ly() call includes:")
+  message("  - customdata = ~", shared_id_column, "  (preferred for all plot types)")
+  message("  - OR key = ~", shared_id_column, "       (works for single-trace plots)")
+  message("  - source = '", source, "'")
+  message("Example: plot_ly(data = your_data, ..., customdata = ~", shared_id_column, ", source = '", source, "')")
 
   # Register with the registry
   registry$register_component(
@@ -96,16 +228,19 @@ setup_plotly_observers <- function(component_id, session, components, shared_sta
     event_data <- plotly::event_data(event_types[1], source = source)
 
     if (!is.null(event_data) && nrow(event_data) > 0) {
-      # Get the component info
-      current_data <- component_info$data_reactive()
+      selected_id <- NULL
+      
+      # Enhanced ID extraction with better error handling
+      selected_id <- extract_plotly_id(event_data, component_info)
+      
+      if (!is.null(selected_id)) {
+        cat("DEBUG: Successfully extracted ID:", selected_id, "\n")
+      } else {
+        cat("DEBUG: Failed to extract ID from plotly event\n")
+        cat("DEBUG: Event data structure:", paste(capture.output(str(event_data)), collapse = "\n"), "\n")
+      }
 
-      # For plotly, we need to map the pointNumber to the data frame row
-      point_number <- event_data$pointNumber[1] + 1  # plotly is 0-indexed, R is 1-indexed
-
-      if (point_number > 0 && point_number <= nrow(current_data)) {
-        # Get the selected ID
-        selected_id <- current_data[[component_info$shared_id_column]][point_number]
-
+      if (!is.null(selected_id)) {
         # THIS IS CORRECT - USER CLICK SHOULD CALL set_selection
         if (!is.null(registry) && !is.null(registry$set_selection)) {
           registry$set_selection(selected_id, component_id)
@@ -242,19 +377,42 @@ update_plotly_selection <- function(component_id, selected_id, session, componen
 apply_default_plotly_behavior <- function(plot_proxy, selected_data, session, component_id) {
   cat("DEBUG: apply_default_plotly_behavior called\n")
 
+  # Get component info to determine current data and find the point index
+  component_info <- session$userData[["linkeR_components"]][[component_id]]
+  if (is.null(component_info)) {
+    cat("DEBUG: Could not find component info for visual updates\n")
+    return()
+  }
+
+  current_data <- component_info$data_reactive()
+  
   if (!is.null(selected_data)) {
-    # Highlight selected point - this is a basic implementation
-    cat("DEBUG: Applying highlight to selected point\n")
+    # Find the index of the selected point
+    selected_id <- selected_data[[component_info$shared_id_column]]
+    point_index <- which(current_data[[component_info$shared_id_column]] == selected_id)[1] - 1  # plotly is 0-indexed
     
-    # Basic highlighting - you may need to customize based on your plot type
-    # This is a simple example that may need adjustment for different plot configurations
+    cat("DEBUG: Highlighting point at index:", point_index, "for ID:", selected_id, "\n")
+    
+    # Create arrays for all points
+    n_points <- nrow(current_data)
+    sizes <- rep(8, n_points)  # default size
+    colors <- rep("steelblue", n_points)  # default color
+    
+    # Highlight the selected point
+    if (!is.na(point_index) && point_index >= 0 && point_index < n_points) {
+      sizes[point_index + 1] <- 15  # make selected point larger (R is 1-indexed)
+      colors[point_index + 1] <- "red"  # make selected point red
+    }
+    
     tryCatch({
       plotly::plotlyProxyInvoke(
         plot_proxy,
         "restyle",
         list(
-          "marker.size" = list(10),
-          "marker.color" = list("red")
+          "marker.size" = list(sizes),
+          "marker.color" = list(colors),
+          "marker.line.width" = list(ifelse(seq_len(n_points) == (point_index + 1), 2, 0)),
+          "marker.line.color" = list(ifelse(seq_len(n_points) == (point_index + 1), "darkred", "transparent"))
         ),
         list(0)  # trace index
       )
@@ -264,13 +422,17 @@ apply_default_plotly_behavior <- function(plot_proxy, selected_data, session, co
   } else {
     # Reset all points to default appearance
     cat("DEBUG: Clearing plotly highlights\n")
+    n_points <- nrow(current_data)
+    
     tryCatch({
       plotly::plotlyProxyInvoke(
         plot_proxy,
         "restyle",
         list(
-          "marker.size" = list(6),
-          "marker.color" = list("steelblue")
+          "marker.size" = list(rep(8, n_points)),
+          "marker.color" = list(rep("steelblue", n_points)),
+          "marker.line.width" = list(rep(0, n_points)),
+          "marker.line.color" = list(rep("transparent", n_points))
         ),
         list(0)  # trace index
       )
