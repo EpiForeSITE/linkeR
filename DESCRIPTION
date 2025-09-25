@@ -1,35 +1,33 @@
 Package: linkeR
-Title: Link Interactive Plots and Tables in Shiny Applications
-Version: 0.1.1
+Title: Link Interactive Plots and Tables in 'Shiny' Applications
+Version: 0.1.2
 Authors@R: 
     c(person("Jake", "Wagoner", , "jakew@sci.utah.edu", role = c("aut", "cre"),
            comment = c(ORCID = "0009-0000-5053-2281")),
     person("Centers for Disease Control and Prevention's Center for Forecasting and Outbreak Analytics",
         role="fnd", comment = "Cooperative agreement CDC-RFA-FT-23-0069"))
-Description: Build powerful, linked-view dashboards in 'Shiny' applications. With a 
+Description: Build powerful, linked-view dashboards in 'shiny' applications. With a 
     declarative, one-line setup, you can create bidirectional links between 
     interactive components. When a user interacts with one element (e.g., clicking 
     a map marker), all linked components (such as 'DT' tables or other charts) 
-    instantly update. Supports 'leaflet' maps, 'DT' tables, and spatial data 
+    instantly update. Supports 'leaflet' maps, 'DT' tables, 'plotly' charts, and spatial data 
     via 'sf' objects out-of-the-box, with an extensible API for custom components.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
-Imports:
-    shiny (>= 1.5.0),
-    magrittr (>= 2.0.0),
-    later (>= 1.0.0)
-Suggests:
-    leaflet,
-    DT,
-    sf,
-    testthat (>= 3.0.0),
-    knitr,
-    plotly,
-    bslib,
-    rmarkdown
+Imports: shiny (>= 1.5.0), magrittr (>= 2.0.0), later (>= 1.0.0)
+Suggests: leaflet, DT, sf, testthat (>= 3.0.0), knitr, plotly, bslib,
+        rmarkdown
 Config/testthat/edition: 3
 VignetteBuilder: knitr
-URL: https://epiforesite.github.io/linkeR/, https://github.com/EpiForeSITE/linkeR/
+URL: https://epiforesite.github.io/linkeR/,
+        https://github.com/EpiForeSITE/linkeR/
 BugReports: https://github.com/EpiForeSITE/linkeR/issues/
+NeedsCompilation: no
+Packaged: 2025-09-25 18:48:59 UTC; jake
+Author: Jake Wagoner [aut, cre] (ORCID:
+    <https://orcid.org/0009-0000-5053-2281>),
+  Centers for Disease Control and Prevention's Center for Forecasting and
+    Outbreak Analytics [fnd] (Cooperative agreement CDC-RFA-FT-23-0069)
+Maintainer: Jake Wagoner <jakew@sci.utah.edu>
