@@ -1,5 +1,5 @@
 Package: linkeR
-Title: Link Interactive Plots and Tables in 'Shiny' Applications
+Title: Link Interactive Plots and Tables in 'shiny' Applications
 Version: 0.1.2
 Authors@R: 
     c(person("Jake", "Wagoner", , "jakew@sci.utah.edu", role = c("aut", "cre"),
