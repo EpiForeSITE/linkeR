@@ -30,32 +30,18 @@ extract_plotly_id <- function(event_data, component_info) {
     }
   }
   
-  # Method 3: Coordinate-based lookup (fallback)
+  # Method 3: Smart coordinate-based lookup (enhanced fallback)
   if ("x" %in% names(event_data) && "y" %in% names(event_data)) {
     current_data <- component_info$data_reactive()
     clicked_x <- event_data$x[1]
     clicked_y <- event_data$y[1]
     
-    cat("DEBUG: Attempting coordinate-based lookup for x=", clicked_x, ", y=", clicked_y, "\n")
+    cat("DEBUG: Attempting smart coordinate lookup for x=", clicked_x, ", y=", clicked_y, "\n")
     
-    # Find matching point by coordinates (with tolerance for floating point)
-    for (i in seq_len(nrow(current_data))) {
-      # We need to know which columns represent x and y
-      # This is tricky since we don't know the plot structure
-      # For now, try to find exact matches in numeric columns
-      numeric_cols <- sapply(current_data, is.numeric)
-      
-      for (x_col in names(current_data)[numeric_cols]) {
-        for (y_col in names(current_data)[numeric_cols]) {
-          if (x_col != y_col && 
-              abs(current_data[[x_col]][i] - clicked_x) < 1e-10 && 
-              abs(current_data[[y_col]][i] - clicked_y) < 1e-10) {
-            id_val <- current_data[[component_info$shared_id_column]][i]
-            cat("DEBUG: Got ID from coordinates (", x_col, ",", y_col, "):", id_val, "\n")
-            return(id_val)
-          }
-        }
-      }
+    # Enhanced coordinate matching with better tolerance and type handling
+    id_val <- smart_coordinate_lookup(current_data, clicked_x, clicked_y, component_info$shared_id_column)
+    if (!is.null(id_val)) {
+      return(id_val)
     }
   }
   
@@ -73,6 +59,100 @@ extract_plotly_id <- function(event_data, component_info) {
   }
   
   cat("DEBUG: All ID extraction methods failed\n")
+  return(NULL)
+}
+
+#' Smart Coordinate-Based ID Lookup
+#'
+#' Enhanced coordinate matching that handles different data types and plot configurations
+#'
+#' @param data Data frame with the original data
+#' @param clicked_x X coordinate from plotly event
+#' @param clicked_y Y coordinate from plotly event  
+#' @param id_column Name of the ID column
+#' @return The matched ID or NULL
+#' @keywords internal
+smart_coordinate_lookup <- function(data, clicked_x, clicked_y, id_column) {
+  # First, determine if coordinates are numeric or categorical
+  x_is_numeric <- is.numeric(clicked_x)
+  y_is_numeric <- is.numeric(clicked_y)
+  
+  cat("DEBUG: clicked_x =", clicked_x, "(numeric:", x_is_numeric, "), clicked_y =", clicked_y, "(numeric:", y_is_numeric, ")\n")
+  
+  # Strategy 1: Handle mixed categorical/numeric coordinates
+  if (!x_is_numeric && y_is_numeric) {
+    # X is categorical (like "Blue"), Y is numeric
+    factor_cols <- names(data)[sapply(data, function(x) is.factor(x) || is.character(x))]
+    numeric_cols <- names(data)[sapply(data, is.numeric)]
+    
+    for (x_col in factor_cols) {
+      for (y_col in numeric_cols) {
+        if (x_col != id_column && y_col != id_column) {
+          # Direct category and numeric match
+          matches <- which(data[[x_col]] == clicked_x & 
+                          abs(data[[y_col]] - clicked_y) < 1e-6)
+          
+          if (length(matches) == 1) {
+            id_val <- data[[id_column]][matches[1]]
+            cat("DEBUG: Found categorical/numeric match (", x_col, "=", clicked_x, ", ", y_col, "=", clicked_y, ") -> ID:", id_val, "\n")
+            return(id_val)
+          }
+        }
+      }
+    }
+  }
+  
+  # Strategy 2: Both coordinates are numeric
+  if (x_is_numeric && y_is_numeric) {
+    numeric_cols <- names(data)[sapply(data, is.numeric)]
+    
+    for (x_col in numeric_cols) {
+      for (y_col in numeric_cols) {
+        if (x_col != y_col && x_col != id_column && y_col != id_column) {
+          # Try exact match first
+          matches <- which(abs(data[[x_col]] - clicked_x) < 1e-10 & 
+                          abs(data[[y_col]] - clicked_y) < 1e-10)
+          
+          if (length(matches) == 1) {
+            id_val <- data[[id_column]][matches[1]]
+            cat("DEBUG: Found exact numeric match (", x_col, "=", clicked_x, ", ", y_col, "=", clicked_y, ") -> ID:", id_val, "\n")
+            return(id_val)
+          }
+          
+          # Try with broader tolerance for floating point issues
+          matches <- which(abs(data[[x_col]] - clicked_x) < 1e-6 & 
+                          abs(data[[y_col]] - clicked_y) < 1e-6)
+          
+          if (length(matches) == 1) {
+            id_val <- data[[id_column]][matches[1]]
+            cat("DEBUG: Found fuzzy numeric match (", x_col, "=", clicked_x, ", ", y_col, "=", clicked_y, ") -> ID:", id_val, "\n")
+            return(id_val)
+          }
+        }
+      }
+    }
+  }
+  
+  # Strategy 3: Handle both coordinates as categorical
+  if (!x_is_numeric && !y_is_numeric) {
+    factor_cols <- names(data)[sapply(data, function(x) is.factor(x) || is.character(x))]
+    
+    for (x_col in factor_cols) {
+      for (y_col in factor_cols) {
+        if (x_col != y_col && x_col != id_column && y_col != id_column) {
+          matches <- which(data[[x_col]] == clicked_x & data[[y_col]] == clicked_y)
+          
+          if (length(matches) == 1) {
+            id_val <- data[[id_column]][matches[1]]
+            cat("DEBUG: Found categorical/categorical match (", x_col, "=", clicked_x, ", ", y_col, "=", clicked_y, ") -> ID:", id_val, "\n")
+            return(id_val)
+          }
+        }
+      }
+    }
+  }
+  
+  cat("DEBUG: Smart coordinate lookup failed\n")
   return(NULL)
 }
 
@@ -161,13 +241,10 @@ register_plotly <- function(session, registry, plotly_output_id, data_reactive, 
     source <- plotly_output_id
   }
   
-  # Provide helpful guidance for plotly linking
-  message("plotly component '", plotly_output_id, "' registered for linking.")
-  message("For reliable linking, ensure your plot_ly() call includes:")
-  message("  - customdata = ~", shared_id_column, "  (preferred for all plot types)")
-  message("  - OR key = ~", shared_id_column, "       (works for single-trace plots)")
-  message("  - source = '", source, "'")
-  message("Example: plot_ly(data = your_data, ..., customdata = ~", shared_id_column, ", source = '", source, "')")
+  # More user-friendly guidance
+  message("✓ plotly component '", plotly_output_id, "' registered for linking")
+  message("ℹ linkeR will automatically handle linking for most plot configurations")
+  message("ℹ If clicking doesn't work, add: customdata = ~", shared_id_column, " to your plot_ly() call")
 
   # Register with the registry
   registry$register_component(
