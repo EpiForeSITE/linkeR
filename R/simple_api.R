@@ -173,6 +173,26 @@ link_plots <- function(session, ..., shared_id_column,
         shared_id_column = shared_id_column,
         click_handler = dt_click_handler
       )
+      
+    } else if (comp_type == "plotly") {
+      # validate that component has shared_id_column
+      if (!shared_id_column %in% names(isolate(comp_data()))) {
+        stop(
+          "Component '", comp_name, "' data must contain the shared_id_column: ",
+          shared_id_column
+        )
+      }
+
+      # USE REGISTER_PLOTLY FUNCTION
+      register_plotly(
+        session = session,  # this is just the global session in the case of single file applications
+        registry = registry,
+        plotly_output_id = comp_name,
+        data_reactive = comp_data,
+        shared_id_column = shared_id_column,
+        click_event = "plotly_click",
+        click_handler = NULL  # Could add plotly_click_handler parameter in future
+      )
     }
   }
 
@@ -224,6 +244,8 @@ detect_component_type <- function(component_id, data_reactive) {
     return("leaflet")
   } else if (grepl("table|dt", id_lower)) {
     return("datatable")
+  } else if (grepl("plot|chart|graph|plotly", id_lower)) {
+    return("plotly")
   } else {
     # Default assumption - could be made smarter
     warning(
