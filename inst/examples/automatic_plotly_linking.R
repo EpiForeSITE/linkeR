@@ -131,8 +131,9 @@ server <- function(input, output, session) {
   
   # Show automatic linking status
   output$auto_info <- renderText({
-    selected_id <- registry$get_selected_id()
-    source <- registry$get_selection_source()
+    selection <- registry$get_selection()
+    selected_id <- selection$selected_id
+    source <- selection$source
     
     if (is.null(selected_id)) {
       return("✨ Ready for automatic linking!\n\nClick any point or table row.\n\n🔍 Check console for debug info about how linkeR automatically detects the clicked item.")
