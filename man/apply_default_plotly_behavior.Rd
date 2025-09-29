@@ -4,12 +4,12 @@
 \alias{apply_default_plotly_behavior}
 \title{Apply Default Plotly Behavior for Selection Highlighting}
 \usage{
-apply_default_plotly_behavior(plot_proxy, selected_data, session, component_id)
+apply_default_plotly_behavior(plot_proxy, selected_row, session, component_id)
 }
 \arguments{
 \item{plot_proxy}{plotlyProxy object for the target plot.}
 
-\item{selected_data}{Data frame row containing the selected data point, or NULL for deselection.}
+\item{selected_row}{Data frame row containing the selected data point, or NULL for deselection.}
 
 \item{session}{Shiny session object for the current user session.}
 
@@ -19,6 +19,9 @@ apply_default_plotly_behavior(plot_proxy, selected_data, session, component_id)
 NULL (invisible). Function is called for side effects only.
 }
 \description{
-Simple, robust default highlighting using plotly's built-in selectedpoints.
-This works reliably across all plot types without complex coordinate detection.
+Implements native plotly-style selection highlighting for multi-trace plots.
+When a point is selected, it dims all other points to 40\% opacity while
+highlighting the selected point with full opacity and increased size.
+This works correctly with plots that use color grouping (e.g., \code{color = ~category})
+which creates multiple traces.
 }

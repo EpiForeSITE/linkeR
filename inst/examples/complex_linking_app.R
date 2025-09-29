@@ -471,7 +471,7 @@ server <- function(input, output, session) {
       x = ~employees,
       y = ~annual_revenue,
       color = ~category,
-      key = ~business_id, # This is crucial for linking!
+      customdata = ~business_id, # Crucial for linking!
       text = ~ paste("Name:", name, "<br>Category:", category, "<br>Employees:", employees, "<br>Revenue: $", format(annual_revenue, big.mark = ",")),
       type = "scatter", # Explicitly specify the trace type
       mode = "markers", # Explicitly specify the mode
@@ -485,9 +485,8 @@ server <- function(input, output, session) {
         showlegend = TRUE,
         legend = list(title = list(text = "Business Category"))
       ) %>%
-      config(displayModeBar = FALSE) # Hide the plotly toolbar for cleaner look
-
-    return(p)
+      config(displayModeBar = FALSE) %>% # Hide the plotly toolbar for cleaner look
+      plotly::event_register("plotly_click")  # Crucial for linking!
   })
 
   output$multi_timeseries <- renderPlotly({
@@ -531,7 +530,6 @@ server <- function(input, output, session) {
               showlegend = FALSE
             ) %>%
             config(displayModeBar = FALSE)
-
           return(p)
         }
       }
@@ -563,19 +561,9 @@ server <- function(input, output, session) {
         session,
         multi_map = business_data,
         multi_table = business_data,
+        multi_chart = business_data,
         shared_id_column = "business_id"
       )
-
-      # Add plotly click handling
-      # This is essentially an observer for plotly clicks to update the registry selection manually
-      # This is necessary because plotly does not automatically trigger the registry
-      # This paradigm allows for any custom behavior to access the registry
-      observeEvent(event_data("plotly_click", source = "multi_chart"), {
-        clicked_data <- event_data("plotly_click", source = "multi_chart")
-        if (!is.null(clicked_data) && !is.null(clicked_data$key)) {
-          registries$multi$set_selection(clicked_data$key, "multi_chart")
-        }
-      })
     }
   })
 

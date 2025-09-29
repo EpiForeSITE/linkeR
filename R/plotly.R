@@ -394,7 +394,6 @@ setup_plotly_observers <- function(component_id, session, components, shared_sta
         # Set session-level flag to prevent recursive calls during visual update
         session$userData[[flag_name]] <- TRUE
 
-        # THIS SHOULD ONLY UPDATE VISUAL STATE - NO set_selection CALLS!
         update_plotly_selection(component_id, selected_id, session, NULL)
 
         later::later(function() {
@@ -471,90 +470,97 @@ update_plotly_selection <- function(component_id, selected_id, session, componen
 
 #' Apply Default Plotly Behavior for Selection Highlighting
 #'
-#' Simple, robust default highlighting using plotly's built-in selectedpoints.
-#' This works reliably across all plot types without complex coordinate detection.
+#' @description
+#' Implements native plotly-style selection highlighting for multi-trace plots.
+#' When a point is selected, it dims all other points to 40% opacity while 
+#' highlighting the selected point with full opacity and increased size.
+#' This works correctly with plots that use color grouping (e.g., `color = ~category`)
+#' which creates multiple traces.
 #'
 #' @param plot_proxy plotlyProxy object for the target plot.
-#' @param selected_data Data frame row containing the selected data point, or NULL for deselection.
+#' @param selected_row Data frame row containing the selected data point, or NULL for deselection.  
 #' @param session Shiny session object for the current user session.
 #' @param component_id Character string. ID of the plotly component for reference.
 #' @return NULL (invisible). Function is called for side effects only.
-apply_default_plotly_behavior <- function(plot_proxy, selected_data, session, component_id) {
-  components <- session$userData[["linkeR_components"]]
-  if (is.null(components)) {
+apply_default_plotly_behavior <- function(plot_proxy, selected_row, session, component_id) {
+  if (!requireNamespace("plotly", quietly = TRUE)) {
     return()
   }
-  
-  component_info <- components[[component_id]]
-  if (is.null(component_info)) {
-    return()
-  }
-
-  current_data <- component_info$data_reactive()
   
   tryCatch({
-    if (!is.null(selected_data)) {
-      # Find the point index and coordinates
-      selected_id <- selected_data[[component_info$shared_id_column]]
-      point_index <- which(current_data[[component_info$shared_id_column]] == selected_id)[1] - 1
+    if (!is.null(selected_row) && nrow(selected_row) > 0) {
+      # Get component information and current data
+      component_info <- session$userData[["linkeR_components"]][[component_id]]
+      if (is.null(component_info)) return()
       
-      if (!is.na(point_index) && point_index >= 0) {
-        # Remove any existing default highlight
-        highlight_key <- paste0(component_id, "_default_highlight")
-        if (isTRUE(session$userData[[highlight_key]])) {
-          plotly::plotlyProxyInvoke(plot_proxy, "deleteTraces", list(-1))
-        }
+      current_data <- component_info$data_reactive()
+      selected_id <- selected_row[[component_info$shared_id_column]][1]
+      
+      # Find which category the selected business belongs to
+      selected_business <- current_data[current_data[[component_info$shared_id_column]] == selected_id, ]
+      if (nrow(selected_business) > 0) {
+        selected_category <- selected_business$category[1]
         
-        # Get the selected row data
-        selected_row <- current_data[point_index + 1, ]
+        # Determine trace structure - plotly creates traces in sorted category order
+        category_order <- sort(unique(current_data$category))
+        target_trace_index <- which(category_order == selected_category) - 1  # 0-based for plotly
         
-        # Find x and y coordinates intelligently
-        # Strategy 1: Common column names
-        x_val <- if("x_val" %in% names(current_data)) selected_row[["x_val"]] else NULL
-        y_val <- if("y_val" %in% names(current_data)) selected_row[["y_val"]] else NULL
+        # Find the point index within the target trace
+        category_businesses <- current_data[current_data$category == selected_category, ]
+        category_businesses <- category_businesses[order(category_businesses[[component_info$shared_id_column]]), ]
+        point_index_in_trace <- which(category_businesses[[component_info$shared_id_column]] == selected_id) - 1
         
-        # Strategy 2: First two numeric columns (excluding ID)
-        if (is.null(x_val) || is.null(y_val)) {
-          numeric_cols <- names(current_data)[sapply(current_data, is.numeric)]
-          numeric_cols <- numeric_cols[numeric_cols != component_info$shared_id_column]
-          if (length(numeric_cols) >= 2) {
-            if (is.null(x_val)) x_val <- selected_row[[numeric_cols[1]]]
-            if (is.null(y_val)) y_val <- selected_row[[numeric_cols[2]]]
-          }
-        }
-        
-        # Add simple visible highlight if we found coordinates
-        if (!is.null(x_val) && !is.null(y_val)) {
-          plotly::plotlyProxyInvoke(
-            plot_proxy,
-            "addTraces",
-            list(
-              x = list(x_val),
-              y = list(y_val),
-              mode = "markers",
-              marker = list(
-                size = 15,
-                color = "rgba(0, 123, 255, 0.7)",  # Blue highlight
-                symbol = "circle-open",
-                line = list(width = 3, color = "blue")
-              ),
-              showlegend = FALSE,
-              hoverinfo = "skip",
-              name = "default_highlight"
-            )
-          )
-          session$userData[[highlight_key]] <- TRUE
+        # Apply selection styling to all traces
+        for (trace_idx in 0:(length(category_order)-1)) {
+          tryCatch({
+            if (trace_idx == target_trace_index) {
+              # Target trace: dim all points except the selected one
+              num_points_in_trace <- nrow(category_businesses)
+              size_array <- rep(8, num_points_in_trace)
+              opacity_array <- rep(0.4, num_points_in_trace)
+              
+              # Highlight the selected point
+              if (point_index_in_trace >= 0 && point_index_in_trace < num_points_in_trace) {
+                size_array[point_index_in_trace + 1] <- 15  # R uses 1-based indexing
+                opacity_array[point_index_in_trace + 1] <- 1.0
+              }
+              
+              plot_proxy %>%
+                plotly::plotlyProxyInvoke("restyle", list(
+                  marker.size = list(size_array),
+                  marker.opacity = list(opacity_array)
+                ), list(trace_idx))
+            } else {
+              # Other traces: dim all points
+              other_category <- category_order[trace_idx + 1]  # R uses 1-based indexing
+              other_businesses <- current_data[current_data$category == other_category, ]
+              num_other_points <- nrow(other_businesses)
+              
+              if (num_other_points > 0) {
+                dim_size_array <- rep(8, num_other_points)
+                dim_opacity_array <- rep(0.4, num_other_points)
+                
+                plot_proxy %>%
+                  plotly::plotlyProxyInvoke("restyle", list(
+                    marker.size = list(dim_size_array),
+                    marker.opacity = list(dim_opacity_array)
+                  ), list(trace_idx))
+              }
+            }
+          }, error = function(e) {
+            # Silently handle individual trace errors
+          })
         }
       }
     } else {
-      # Clear default highlight
-      highlight_key <- paste0(component_id, "_default_highlight")
-      if (isTRUE(session$userData[[highlight_key]])) {
-        plotly::plotlyProxyInvoke(plot_proxy, "deleteTraces", list(-1))
-        session$userData[[highlight_key]] <- FALSE
-      }
+      # Clear selection - reset all traces to default state
+      plot_proxy %>%
+        plotly::plotlyProxyInvoke("restyle", list(
+          marker.opacity = list(NULL),
+          marker.size = list(NULL)
+        ), NULL)
     }
   }, error = function(e) {
-    # Fallback: do nothing rather than break
+    # Silently handle errors in visual updates
   })
 }
