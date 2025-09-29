@@ -265,9 +265,6 @@ server <- function(input, output, session) {
     # Update centralized state
     on_selection_change = function(selected_id, selected_data, source_id, session) {
       current_selection(selected_data)
-      
-      # Log for debugging
-      cat("Selection changed:", selected_id, "from", source_id, "\n")
     }
   )
   

@@ -238,12 +238,8 @@ server <- function(input, output, session) {
       # Custom leaflet click handler
       leaflet_click_handler = function(map_proxy, selected_data, session) {
         if (!is.null(selected_data)) {
-          # Debug: print the structure of selected_data
-          cat("Selected data columns:", names(selected_data), "\n")
-          
           if (!("longitude" %in% names(selected_data)) || 
               !("latitude" %in% names(selected_data))) {
-            cat("Selected data does not have longitude/latitude columns.\n")
            
             if (inherits(selected_data, "sf")) {
               # Extract coordinates from sf object

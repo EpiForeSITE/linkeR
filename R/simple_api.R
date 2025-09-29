@@ -32,6 +32,9 @@
 #' @param dt_click_handler Optional function that handles DT row selections.
 #'   This will be used for both direct clicks and when other components select this row.
 #'   Function should accept (dt_proxy, selected_data, session).
+#' @param plotly_click_handler Optional function that handles plotly point clicks.
+#'   This will be used for both direct clicks and when other components select this point.
+#'   Function should accept (plot_proxy, selected_data, session).
 #' @param on_selection_change Optional callback function that gets called when selection changes.
 #'   Function should accept parameters: (selected_id, selected_data, source_component_id, session)
 #' @return Invisibly returns the created registry object
@@ -96,6 +99,7 @@ link_plots <- function(session, ..., shared_id_column,
                        leaflet_lat_col = "latitude",
                        leaflet_click_handler = NULL,
                        dt_click_handler = NULL,
+                       plotly_click_handler = NULL,
                        on_selection_change = NULL) {
   # Validate inputs
   if (missing(session)) {
@@ -190,8 +194,7 @@ link_plots <- function(session, ..., shared_id_column,
         plotly_output_id = comp_name,
         data_reactive = comp_data,
         shared_id_column = shared_id_column,
-        click_event = "plotly_click",
-        click_handler = NULL  # Could add plotly_click_handler parameter in future
+        click_handler = plotly_click_handler  # Pass through the handler
       )
     }
   }

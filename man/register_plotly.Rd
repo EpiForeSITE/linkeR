@@ -30,11 +30,18 @@ register_plotly(
 
 \item{source}{Character string: plotly source identifier for event tracking}
 
-\item{click_handler}{Optional function: custom click handler for selection}
+\item{click_handler}{Optional function: custom selection update handler.
+Function signature: function(plot_proxy, selected_data, session)
+where selected_data is the row from data_reactive() or NULL to clear selection.}
 }
 \value{
 NULL (invisible). This function is called for its side effects.
 }
 \description{
 \code{register_plotly} registers a Plotly component for linking with other components.
+The default behavior uses plotly's built-in point selection highlighting, which
+is simple and works reliably across all plot types.
+}
+\examples{
+TODO
 }

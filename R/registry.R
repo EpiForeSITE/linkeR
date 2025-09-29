@@ -99,17 +99,23 @@ create_link_registry <- function(session, on_selection_change = NULL) {
         }
       }
 
-      # Store component information
+      # Store component information in registry
       components[[namespaced_id]] <<- list(
         type = type,
         data_reactive = data_reactive,
         shared_id_column = shared_id_column,
         config = config
       )
+      
+      # Also store in session userData for visual update functions
+      if (is.null(session$userData[["linkeR_components"]])) {
+        session$userData[["linkeR_components"]] <- list()
+      }
+      session$userData[["linkeR_components"]][[component_id]] <- components[[namespaced_id]]
 
       # Set up component-specific observers and store them
       observers[[namespaced_id]] <<- setup_component_observers(
-        namespaced_id, type, top_level_session, components, shared_state, on_selection_change,
+        namespaced_id, type, session, components, shared_state, on_selection_change,
         registry = list(set_selection = registry$set_selection)
       )
 
@@ -127,6 +133,12 @@ create_link_registry <- function(session, on_selection_change = NULL) {
       }
       observers <<- list()
       components <<- list()
+      
+      # Clear session userData as well
+      if (exists("session") && !is.null(session$userData)) {
+        session$userData[["linkeR_components"]] <- NULL
+      }
+      
       # Reset shared state
       shared_state$selected_id <<- NULL
       shared_state$selection_source <<- NULL
@@ -239,8 +251,9 @@ setup_component_observers <- function(component_id, type, session, components, s
   observers <- switch(type,
     "leaflet" = setup_leaflet_observers(component_id, session, components, shared_state, on_selection_change, registry),
     "datatable" = setup_datatable_observers(component_id, session, components, shared_state, on_selection_change, registry),
+    "plotly" = setup_plotly_observers(component_id, session, components, shared_state, on_selection_change, registry),
     stop("Unsupported component type: ", type)
   )
-
+  
   return(observers)
 }

@@ -14,47 +14,54 @@ auto_data <- data.frame(
 )
 
 ui <- fluidPage(
-  titlePanel("Automatic Plotly Linking (No Manual Setup Required)"),
+  titlePanel("Plotly Linking: Simple Default vs Custom Behavior"),
   
-  div(class = "alert alert-success",
-      p("🎯 These plots require NO manual customdata/key setup!"),
-      p("✨ linkeR automatically handles linking for any plot configuration.")
+  div(class = "alert alert-info",
+      p("🎯 Compare simple default behavior vs advanced custom callbacks!"),
+      p("✨ Default behavior uses plotly's built-in selectedpoints highlighting."),
+      p("🚀 Custom behavior allows full control over visual updates.")
   ),
   
   fluidRow(
-    column(4,
-           h4("Plot 1: Color Grouping"),
-           p("Traditional problematic case"),
-           plotlyOutput("auto_plot1", height = "300px")
+    column(6,
+           h4("Default Behavior: Simple & Reliable"),
+           p("Uses plotly's built-in selectedpoints highlighting"),
+           plotlyOutput("default_plot", height = "300px"),
+           div(class = "well well-sm",
+               p(strong("Benefits:"), "Simple, works everywhere, no custom code needed"))
     ),
-    column(4,
-           h4("Plot 2: Categorical X-axis"),
-           p("Categories vs numeric"),
-           plotlyOutput("auto_plot2", height = "300px")
-    ),
-    column(4,
-           h4("Plot 3: Complex Plot"),
-           p("Size + color mapping"),
-           plotlyOutput("auto_plot3", height = "300px")
+    column(6,
+           h4("Custom Behavior: Advanced Control"),
+           p("Custom callback with enhanced visual feedback"),
+           plotlyOutput("custom_plot", height = "300px"),
+           div(class = "well well-sm",
+               p(strong("Benefits:"), "Full control, custom styling, advanced features"))
     )
   ),
   
   fluidRow(
-    column(6,
+    column(4,
            h4("Data Table"),
            DT::dataTableOutput("auto_table", height = "250px")
     ),
-    column(6,
-           h4("Automatic Linking Status"),
-           verbatimTextOutput("auto_info"),
-           br(),
+    column(4,
+           h4("Linking Status"),
+           verbatimTextOutput("auto_info")
+    ),
+    column(4,
+           h4("Implementation Comparison"),
            div(class = "well",
-               h5("Zero Configuration Required:"),
+               h5("Default (Simple):"),
                tags$ul(
-                 tags$li("No customdata parameter needed"),
-                 tags$li("No key parameter needed"),
-                 tags$li("No manual plot preparation"),
-                 tags$li("Works with any plot structure")
+                 tags$li("Just call register_plotly()"),
+                 tags$li("Uses selectedpoints highlighting"),
+                 tags$li("Works with any plot type")
+               ),
+               h5("Custom (Advanced):"),
+               tags$ul(
+                 tags$li("Define plotly_click_handler function"),
+                 tags$li("Full control over visual updates"),
+                 tags$li("Add animations, colors, etc.")
                )
            )
     )
@@ -65,62 +72,103 @@ server <- function(input, output, session) {
   registry <- create_link_registry(session)
   reactive_data <- reactive({ auto_data })
   
-  # Simple registration - no plot modification needed!
-  register_plotly(session, registry, "auto_plot1", reactive_data, "auto_id", source = "auto1")
-  register_plotly(session, registry, "auto_plot2", reactive_data, "auto_id", source = "auto2")  
-  register_plotly(session, registry, "auto_plot3", reactive_data, "auto_id", source = "auto3")
+  # DEFAULT BEHAVIOR: Simple registration with built-in selectedpoints highlighting
+  register_plotly(session, registry, "default_plot", reactive_data, "auto_id", source = "default")
+  
+  # CUSTOM BEHAVIOR: Advanced callback with custom visual feedback
+  custom_highlight_handler <- function(plot_proxy, selected_data, session) {
+    if (!is.null(selected_data)) {
+      # Custom highlighting: Add a pulsing red circle
+      selected_id <- selected_data[["auto_id"]]
+      current_data <- reactive_data()
+      point_idx <- which(current_data$auto_id == selected_id)[1] - 1  # 0-indexed for plotly
+      
+      if (!is.na(point_idx)) {
+        # Clear any existing custom traces
+        if (isTRUE(session$userData[["custom_highlight_active"]])) {
+          plotly::plotlyProxyInvoke(plot_proxy, "deleteTraces", list(-1))
+        }
+        
+        # Add custom highlight trace with animation
+        selected_row <- current_data[point_idx + 1, ]
+        plotly::plotlyProxyInvoke(
+          plot_proxy,
+          "addTraces",
+          list(
+            x = list(selected_row$x_numeric),
+            y = list(selected_row$score),  # Use score, not y_numeric!
+            mode = "markers",
+            marker = list(
+              size = 25,
+              color = "rgba(255, 0, 0, 0.6)",
+              symbol = "circle-open",
+              line = list(width = 5, color = "red")
+            ),
+            showlegend = FALSE,
+            hoverinfo = "skip",
+            name = "custom_highlight"
+          )
+        )
+        session$userData[["custom_highlight_active"]] <- TRUE
+        
+        # Show message
+        showNotification(
+          paste("Custom highlight for:", selected_row$name), 
+          type = "message", 
+          duration = 2
+        )
+      }
+    } else {
+      # Clear custom highlighting
+      if (isTRUE(session$userData[["custom_highlight_active"]])) {
+        plotly::plotlyProxyInvoke(plot_proxy, "deleteTraces", list(-1))
+        session$userData[["custom_highlight_active"]] <- FALSE
+      }
+    }
+  }
+  
+  register_plotly(
+    session, registry, "custom_plot", reactive_data, "auto_id", 
+    source = "custom",
+    click_handler = custom_highlight_handler
+  )
+  
   register_dt(session, registry, "auto_table", reactive_data, "auto_id")
   
-  # Plot 1: Standard scatter with color grouping (previously problematic)
-  output$auto_plot1 <- renderPlotly({
+  # DEFAULT PLOT: Uses simple built-in selectedpoints highlighting
+  output$default_plot <- renderPlotly({
     plot_ly(
       data = reactive_data(),
       x = ~x_numeric,
       y = ~y_numeric,
-      color = ~category,  # Creates multiple traces - should work automatically!
-      text = ~paste("ID:", auto_id, "<br>Name:", name),
+      color = ~category,
+      text = ~paste("ID:", auto_id, "<br>Name:", name, "<br>Category:", category),
       hoverinfo = "text",
       mode = "markers",
       type = "scatter",
-      source = "auto1"
-      # Notice: NO customdata or key needed!
+      source = "default"
+      # No special parameters needed - linkeR handles everything automatically!
     )
   })
   
-  # Plot 2: Categorical x-axis (tests smart coordinate lookup)
-  output$auto_plot2 <- renderPlotly({
+  # CUSTOM PLOT: Uses advanced custom callback for enhanced visuals
+  output$custom_plot <- renderPlotly({
     plot_ly(
       data = reactive_data(),
-      x = ~category,  # Categorical x-axis
+      x = ~x_numeric,
       y = ~score,
+      color = ~category,
       text = ~paste("ID:", auto_id, "<br>Name:", name, "<br>Score:", score),
       hoverinfo = "text",
       mode = "markers",
       type = "scatter",
-      marker = list(size = 12),
-      source = "auto2"
-      # Notice: NO special parameters needed!
+      marker = list(size = 10),
+      source = "custom"
+      # Same simple plot - the magic is in the custom callback!
     )
   })
   
-  # Plot 3: Complex plot with size mapping
-  output$auto_plot3 <- renderPlotly({
-    plot_ly(
-      data = reactive_data(),
-      x = ~score,
-      y = ~y_numeric,
-      size = ~x_numeric,
-      color = ~category,
-      text = ~paste("ID:", auto_id, "<br>Name:", name),
-      hoverinfo = "text",
-      mode = "markers",
-      type = "scatter",
-      source = "auto3"
-      # Notice: Even complex plots work automatically!
-    )
-  })
-  
-  # Standard data table
+  # Data table
   output$auto_table <- DT::renderDataTable({
     DT::datatable(
       reactive_data(),
@@ -129,32 +177,34 @@ server <- function(input, output, session) {
     )
   })
   
-  # Show automatic linking status
+  # Show linking status and behavior comparison
   output$auto_info <- renderText({
     selection <- registry$get_selection()
     selected_id <- selection$selected_id
     source <- selection$source
     
     if (is.null(selected_id)) {
-      return("✨ Ready for automatic linking!\n\nClick any point or table row.\n\n🔍 Check console for debug info about how linkeR automatically detects the clicked item.")
+      return(paste(
+        "Click any plot point or table row to see:",
+        "",
+        "🔹 DEFAULT: Simple selectedpoints highlighting",
+        "🔹 CUSTOM: Enhanced visual feedback + notification",
+        "",
+        "Both require zero plot configuration!",
+        sep = "\n"
+      ))
     }
     
     selected_item <- reactive_data()[reactive_data()$auto_id == selected_id, ]
+    behavior_type <- if(source == "default") "DEFAULT (selectedpoints)" else if(source == "custom") "CUSTOM (callback)" else "TABLE"
     
     paste(
-      "🎯 AUTOMATIC LINKING SUCCESS!",
+      paste("🎯 Selected:", selected_item$name),
+      paste("📍 Source:", behavior_type),
+      paste("🏷️ Category:", selected_item$category),
+      paste("📊 Score:", selected_item$score),
       "",
-      paste("Selected ID:", selected_id),
-      paste("Triggered from:", source),
-      paste("Item:", selected_item$name),
-      paste("Category:", selected_item$category),
-      paste("Score:", selected_item$score),
-      "",
-      "✅ No manual setup required!",
-      "✅ Works with any plot structure!",
-      "✅ Smart coordinate detection!",
-      "",
-      "Check browser console for debug details.",
+      if(source == "default") "Using plotly's built-in selectedpoints" else if(source == "custom") "Using custom callback with red highlight" else "Table selection triggers both plots",
       sep = "\n"
     )
   })

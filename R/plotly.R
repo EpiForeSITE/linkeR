@@ -1,7 +1,6 @@
 #' Extract ID from Plotly Event Data
 #'
-#' Robust extraction of shared ID from plotly click events, handling multiple traces
-#' and different plotly configurations.
+#' Extracts shared ID from plotly click events using multiple strategies.
 #'
 #' @param event_data Plotly event data from event_data()
 #' @param component_info Component information from registry
@@ -12,59 +11,54 @@ extract_plotly_id <- function(event_data, component_info) {
     return(NULL)
   }
   
-  # Method 1: Try customdata (most reliable for multiple traces)
+  # Try customdata (most reliable for multiple traces)
   if ("customdata" %in% names(event_data) && !is.null(event_data$customdata)) {
     id_val <- event_data$customdata[1]
     if (!is.null(id_val) && !is.na(id_val)) {
-      cat("DEBUG: Got ID from customdata:", id_val, "\n")
       return(id_val)
     }
   }
   
-  # Method 2: Try key (works for single trace)
+  # Try key (works for single trace)
   if ("key" %in% names(event_data) && !is.null(event_data$key)) {
     id_val <- event_data$key[1]
     if (!is.null(id_val) && !is.na(id_val)) {
-      cat("DEBUG: Got ID from key:", id_val, "\n")
       return(id_val)
     }
   }
   
-  # Method 3: Smart coordinate-based lookup (enhanced fallback)
+  # Smart coordinate-based lookup (fallback)
   if ("x" %in% names(event_data) && "y" %in% names(event_data)) {
     current_data <- component_info$data_reactive()
     clicked_x <- event_data$x[1]
     clicked_y <- event_data$y[1]
     
-    cat("DEBUG: Attempting smart coordinate lookup for x=", clicked_x, ", y=", clicked_y, "\n")
-    
-    # Enhanced coordinate matching with better tolerance and type handling
     id_val <- smart_coordinate_lookup(current_data, clicked_x, clicked_y, component_info$shared_id_column)
     if (!is.null(id_val)) {
       return(id_val)
     }
   }
   
-  # Method 4: Last resort - pointNumber mapping (unreliable with multiple traces)
+  # Last resort - pointNumber mapping (unreliable with multiple traces)
   if ("pointNumber" %in% names(event_data)) {
     current_data <- component_info$data_reactive()
-    point_number <- event_data$pointNumber[1] + 1  # plotly is 0-indexed, R is 1-indexed
+    point_number <- event_data$pointNumber[1] + 1
     
     if (point_number > 0 && point_number <= nrow(current_data)) {
       id_val <- current_data[[component_info$shared_id_column]][point_number]
-      cat("DEBUG: Got ID from pointNumber (UNRELIABLE):", id_val, "\n")
       warning("Using pointNumber for plotly ID extraction - this may be unreliable with multiple traces. Consider using customdata or key parameters.")
       return(id_val)
     }
   }
   
-  cat("DEBUG: All ID extraction methods failed\n")
   return(NULL)
 }
 
 #' Smart Coordinate-Based ID Lookup
 #'
-#' Enhanced coordinate matching that handles different data types and plot configurations
+#' Enables automatic linking by matching clicked coordinates to data rows.
+#' This function is used during ID extraction when customdata/key parameters
+#' are not available, providing zero-configuration automatic linking.
 #'
 #' @param data Data frame with the original data
 #' @param clicked_x X coordinate from plotly event
@@ -73,36 +67,29 @@ extract_plotly_id <- function(event_data, component_info) {
 #' @return The matched ID or NULL
 #' @keywords internal
 smart_coordinate_lookup <- function(data, clicked_x, clicked_y, id_column) {
-  # First, determine if coordinates are numeric or categorical
   x_is_numeric <- is.numeric(clicked_x)
   y_is_numeric <- is.numeric(clicked_y)
   
-  cat("DEBUG: clicked_x =", clicked_x, "(numeric:", x_is_numeric, "), clicked_y =", clicked_y, "(numeric:", y_is_numeric, ")\n")
-  
-  # Strategy 1: Handle mixed categorical/numeric coordinates
+  # Handle mixed categorical/numeric coordinates
   if (!x_is_numeric && y_is_numeric) {
-    # X is categorical (like "Blue"), Y is numeric
     factor_cols <- names(data)[sapply(data, function(x) is.factor(x) || is.character(x))]
     numeric_cols <- names(data)[sapply(data, is.numeric)]
     
     for (x_col in factor_cols) {
       for (y_col in numeric_cols) {
         if (x_col != id_column && y_col != id_column) {
-          # Direct category and numeric match
           matches <- which(data[[x_col]] == clicked_x & 
                           abs(data[[y_col]] - clicked_y) < 1e-6)
           
           if (length(matches) == 1) {
-            id_val <- data[[id_column]][matches[1]]
-            cat("DEBUG: Found categorical/numeric match (", x_col, "=", clicked_x, ", ", y_col, "=", clicked_y, ") -> ID:", id_val, "\n")
-            return(id_val)
+            return(data[[id_column]][matches[1]])
           }
         }
       }
     }
   }
   
-  # Strategy 2: Both coordinates are numeric
+  # Both coordinates are numeric
   if (x_is_numeric && y_is_numeric) {
     numeric_cols <- names(data)[sapply(data, is.numeric)]
     
@@ -114,9 +101,7 @@ smart_coordinate_lookup <- function(data, clicked_x, clicked_y, id_column) {
                           abs(data[[y_col]] - clicked_y) < 1e-10)
           
           if (length(matches) == 1) {
-            id_val <- data[[id_column]][matches[1]]
-            cat("DEBUG: Found exact numeric match (", x_col, "=", clicked_x, ", ", y_col, "=", clicked_y, ") -> ID:", id_val, "\n")
-            return(id_val)
+            return(data[[id_column]][matches[1]])
           }
           
           # Try with broader tolerance for floating point issues
@@ -124,16 +109,14 @@ smart_coordinate_lookup <- function(data, clicked_x, clicked_y, id_column) {
                           abs(data[[y_col]] - clicked_y) < 1e-6)
           
           if (length(matches) == 1) {
-            id_val <- data[[id_column]][matches[1]]
-            cat("DEBUG: Found fuzzy numeric match (", x_col, "=", clicked_x, ", ", y_col, "=", clicked_y, ") -> ID:", id_val, "\n")
-            return(id_val)
+            return(data[[id_column]][matches[1]])
           }
         }
       }
     }
   }
   
-  # Strategy 3: Handle both coordinates as categorical
+  # Both coordinates are categorical
   if (!x_is_numeric && !y_is_numeric) {
     factor_cols <- names(data)[sapply(data, function(x) is.factor(x) || is.character(x))]
     
@@ -143,16 +126,59 @@ smart_coordinate_lookup <- function(data, clicked_x, clicked_y, id_column) {
           matches <- which(data[[x_col]] == clicked_x & data[[y_col]] == clicked_y)
           
           if (length(matches) == 1) {
-            id_val <- data[[id_column]][matches[1]]
-            cat("DEBUG: Found categorical/categorical match (", x_col, "=", clicked_x, ", ", y_col, "=", clicked_y, ") -> ID:", id_val, "\n")
-            return(id_val)
+            return(data[[id_column]][matches[1]])
           }
         }
       }
     }
   }
   
-  cat("DEBUG: Smart coordinate lookup failed\n")
+  # Fallback - try to match any single unique coordinate
+  if (x_is_numeric || y_is_numeric) {
+    numeric_cols <- names(data)[sapply(data, is.numeric)]
+    
+    for (col in numeric_cols) {
+      if (col != id_column) {
+        # Try matching x coordinate
+        if (x_is_numeric) {
+          matches <- which(abs(data[[col]] - clicked_x) < 1e-6)
+          if (length(matches) == 1) {
+            return(data[[id_column]][matches[1]])
+          }
+        }
+        
+        # Try matching y coordinate  
+        if (y_is_numeric) {
+          matches <- which(abs(data[[col]] - clicked_y) < 1e-6)
+          if (length(matches) == 1) {
+            return(data[[id_column]][matches[1]])
+          }
+        }
+      }
+    }
+  }
+  
+  # Last resort - combination matching with multiple tolerance levels
+  if (x_is_numeric && y_is_numeric) {
+    numeric_cols <- names(data)[sapply(data, is.numeric)]
+    tolerances <- c(1e-8, 1e-4, 1e-2, 0.1)
+    
+    for (tol in tolerances) {
+      for (x_col in numeric_cols) {
+        for (y_col in numeric_cols) {
+          if (x_col != y_col && x_col != id_column && y_col != id_column) {
+            matches <- which(abs(data[[x_col]] - clicked_x) < tol & 
+                            abs(data[[y_col]] - clicked_y) < tol)
+            
+            if (length(matches) == 1) {
+              warning("Using loose coordinate tolerance (", tol, ") for plotly linking. Consider adding customdata parameter for more reliable linking.")
+              return(data[[id_column]][matches[1]])
+            }
+          }
+        }
+      }
+    }
+  }
   return(NULL)
 }
 
@@ -167,7 +193,7 @@ smart_coordinate_lookup <- function(data, clicked_x, clicked_y, id_column) {
 #' @returns Modified plotly object with linking parameters added
 #' @export
 #' @examples
-#' \dontrun{
+#' \dontrun{ TODO (update example to actually work)
 #' # Instead of manually adding customdata/key:
 #' p <- plot_ly(data = my_data, x = ~x_col, y = ~y_col, color = ~category)
 #' p <- prepare_plotly_linking(p, "my_id_column", "my_source")
@@ -205,6 +231,8 @@ prepare_plotly_linking <- function(plotly_obj, id_column, source) {
 #' Register a Plotly Component
 #'
 #' `register_plotly` registers a Plotly component for linking with other components.
+#' The default behavior uses plotly's built-in point selection highlighting, which
+#' is simple and works reliably across all plot types.
 #'
 #' @param session Shiny session object
 #' @param registry A link registry created by [create_link_registry()]
@@ -213,8 +241,11 @@ prepare_plotly_linking <- function(plotly_obj, id_column, source) {
 #' @param shared_id_column Character string: name of the ID column
 #' @param event_types Character vector: plotly event types to listen for
 #' @param source Character string: plotly source identifier for event tracking
-#' @param click_handler Optional function: custom click handler for selection
+#' @param click_handler Optional function: custom selection update handler.
+#'   Function signature: function(plot_proxy, selected_data, session)
+#'   where selected_data is the row from data_reactive() or NULL to clear selection.
 #' @returns NULL (invisible). This function is called for its side effects.
+#' @examples TODO
 #' @export
 register_plotly <- function(session, registry, plotly_output_id, data_reactive, shared_id_column,
                           event_types = c("plotly_click"), source = NULL,
@@ -305,25 +336,30 @@ setup_plotly_observers <- function(component_id, session, components, shared_sta
     event_data <- plotly::event_data(event_types[1], source = source)
 
     if (!is.null(event_data) && nrow(event_data) > 0) {
-      selected_id <- NULL
-      
-      # Enhanced ID extraction with better error handling
       selected_id <- extract_plotly_id(event_data, component_info)
-      
-      if (!is.null(selected_id)) {
-        cat("DEBUG: Successfully extracted ID:", selected_id, "\n")
-      } else {
-        cat("DEBUG: Failed to extract ID from plotly event\n")
-        cat("DEBUG: Event data structure:", paste(capture.output(str(event_data)), collapse = "\n"), "\n")
-      }
 
       if (!is.null(selected_id)) {
-        # THIS IS CORRECT - USER CLICK SHOULD CALL set_selection
+        # Update the shared state first
         if (!is.null(registry) && !is.null(registry$set_selection)) {
           registry$set_selection(selected_id, component_id)
         } else {
           shared_state$selected_id <- selected_id
           shared_state$selection_source <- component_id
+        }
+        
+        # Update this plot's own visual state immediately
+        current_data <- component_info$data_reactive()
+        if (component_info$shared_id_column %in% names(current_data)) {
+          selected_row <- current_data[current_data[[component_info$shared_id_column]] == selected_id, ][1, ]
+          if (nrow(selected_row) > 0) {
+            # Use custom handler if available, otherwise default
+            if (!is.null(component_info$config$click_handler) && is.function(component_info$config$click_handler)) {
+              plot_proxy <- plotly::plotlyProxy(component_id, session = session)
+              component_info$config$click_handler(plot_proxy, selected_row, session)
+            } else {
+              apply_default_plotly_behavior(plotly::plotlyProxy(component_id, session = session), selected_row, session, component_id)
+            }
+          }
         }
       }
     } else {
@@ -334,6 +370,14 @@ setup_plotly_observers <- function(component_id, session, components, shared_sta
         shared_state$selected_id <- NULL
         shared_state$selection_source <- component_id
       }
+      
+      # Clear this plot's own visual state immediately
+      if (!is.null(component_info$config$click_handler) && is.function(component_info$config$click_handler)) {
+        plot_proxy <- plotly::plotlyProxy(component_id, session = session)
+        component_info$config$click_handler(plot_proxy, NULL, session)
+      } else {
+        apply_default_plotly_behavior(plotly::plotlyProxy(component_id, session = session), NULL, session, component_id)
+      }
     }
   },
   ignoreNULL = FALSE,
@@ -343,25 +387,19 @@ setup_plotly_observers <- function(component_id, session, components, shared_sta
   # Observer for responding to selections from other components (VISUAL UPDATES ONLY)
   observer2 <- shiny::observeEvent(shared_state$selected_id,
     {
-      cat("DEBUG: Plotly external selection change detected. Selected ID:", shared_state$selected_id, "\n")
-      cat("DEBUG: Plotly Source component:", shared_state$selection_source, "Current component:", component_id, "\n")
-
-      # Only respond if selection came from a different component
       if (!is.null(shared_state$selection_source) &&
         shared_state$selection_source != component_id) {
         selected_id <- shared_state$selected_id
-        cat("DEBUG: Plotly updating visual selection to ID:", selected_id, "\n")
 
-        # Set session-level flag to prevent recursive calls
+        # Set session-level flag to prevent recursive calls during visual update
         session$userData[[flag_name]] <- TRUE
 
         # THIS SHOULD ONLY UPDATE VISUAL STATE - NO set_selection CALLS!
-        update_plotly_selection(component_id, selected_id, session, components)
+        update_plotly_selection(component_id, selected_id, session, NULL)
 
-        # Reset flag after a short delay to allow plotly event to be processed and ignored
         later::later(function() {
           session$userData[[flag_name]] <- FALSE
-        }, delay = 0.1) # 100ms delay
+        }, delay = 0.05)
       }
     },
     ignoreNULL = FALSE,
@@ -382,55 +420,45 @@ setup_plotly_observers <- function(component_id, session, components, shared_sta
 #' @param components List containing component configuration information.
 #' @return NULL (invisible). Function is called for side effects only.
 update_plotly_selection <- function(component_id, selected_id, session, components) {
-  cat("DEBUG: update_plotly_selection called for component:", component_id, "with ID:", selected_id, "\n")
-
   if (!requireNamespace("plotly", quietly = TRUE)) {
-    cat("DEBUG: plotly package not available\n")
     return()
   }
 
+  if (is.null(components)) {
+    components <- session$userData[["linkeR_components"]]
+  }
+  
+  if (is.null(components)) {
+    return()
+  }
+  
   component_info <- components[[component_id]]
   if (is.null(component_info)) {
-    cat("DEBUG: Component info not found for:", component_id, "\n")
     return()
   }
 
   current_data <- component_info$data_reactive()
-  cat("DEBUG: Plotly current data has", nrow(current_data), "rows\n")
 
-  # Validate shared ID column exists
   if (!component_info$shared_id_column %in% names(current_data)) {
     warning("Shared ID column '", component_info$shared_id_column, "' not found in Plotly data for component: ", component_id)
     return()
   }
 
-  # Get plotly proxy
   plot_proxy <- plotly::plotlyProxy(component_id, session = session)
-  cat("DEBUG: Plotly proxy created\n")
 
   if (!is.null(selected_id)) {
-    # Find matching row
     row_idx <- which(current_data[[component_info$shared_id_column]] == selected_id)
-    cat("DEBUG: Plotly found", length(row_idx), "matching rows for ID:", selected_id, "\n")
 
     if (length(row_idx) > 0) {
       selected_data <- current_data[row_idx[1], ]
-      cat("DEBUG: Plotly selecting row index:", row_idx[1], "\n")
 
-      # Use user's custom click handler if provided
       if (!is.null(component_info$config$click_handler) && is.function(component_info$config$click_handler)) {
-        cat("DEBUG: Using custom Plotly click handler\n")
         component_info$config$click_handler(plot_proxy, selected_data, session)
       } else {
-        # Default behavior: highlight the selected point
-        cat("DEBUG: Using default Plotly selection, highlighting point:", row_idx[1] - 1, "\n") # plotly is 0-indexed
         apply_default_plotly_behavior(plot_proxy, selected_data, session, component_id)
       }
-    } else {
-      cat("DEBUG: Plotly no matching rows found for ID:", selected_id, "\n")
     }
   } else {
-    cat("DEBUG: Plotly clearing selection\n")
     # Handle deselection
     if (!is.null(component_info$config$click_handler) && is.function(component_info$config$click_handler)) {
       component_info$config$click_handler(plot_proxy, NULL, session)
@@ -443,8 +471,8 @@ update_plotly_selection <- function(component_id, selected_id, session, componen
 
 #' Apply Default Plotly Behavior for Selection Highlighting
 #'
-#' Applies the default visual highlighting behavior for a Plotly plot
-#' when a data point is selected or deselected.
+#' Simple, robust default highlighting using plotly's built-in selectedpoints.
+#' This works reliably across all plot types without complex coordinate detection.
 #'
 #' @param plot_proxy plotlyProxy object for the target plot.
 #' @param selected_data Data frame row containing the selected data point, or NULL for deselection.
@@ -452,69 +480,81 @@ update_plotly_selection <- function(component_id, selected_id, session, componen
 #' @param component_id Character string. ID of the plotly component for reference.
 #' @return NULL (invisible). Function is called for side effects only.
 apply_default_plotly_behavior <- function(plot_proxy, selected_data, session, component_id) {
-  cat("DEBUG: apply_default_plotly_behavior called\n")
-
-  # Get component info to determine current data and find the point index
-  component_info <- session$userData[["linkeR_components"]][[component_id]]
+  components <- session$userData[["linkeR_components"]]
+  if (is.null(components)) {
+    return()
+  }
+  
+  component_info <- components[[component_id]]
   if (is.null(component_info)) {
-    cat("DEBUG: Could not find component info for visual updates\n")
     return()
   }
 
   current_data <- component_info$data_reactive()
   
-  if (!is.null(selected_data)) {
-    # Find the index of the selected point
-    selected_id <- selected_data[[component_info$shared_id_column]]
-    point_index <- which(current_data[[component_info$shared_id_column]] == selected_id)[1] - 1  # plotly is 0-indexed
-    
-    cat("DEBUG: Highlighting point at index:", point_index, "for ID:", selected_id, "\n")
-    
-    # Create arrays for all points
-    n_points <- nrow(current_data)
-    sizes <- rep(8, n_points)  # default size
-    colors <- rep("steelblue", n_points)  # default color
-    
-    # Highlight the selected point
-    if (!is.na(point_index) && point_index >= 0 && point_index < n_points) {
-      sizes[point_index + 1] <- 15  # make selected point larger (R is 1-indexed)
-      colors[point_index + 1] <- "red"  # make selected point red
+  tryCatch({
+    if (!is.null(selected_data)) {
+      # Find the point index and coordinates
+      selected_id <- selected_data[[component_info$shared_id_column]]
+      point_index <- which(current_data[[component_info$shared_id_column]] == selected_id)[1] - 1
+      
+      if (!is.na(point_index) && point_index >= 0) {
+        # Remove any existing default highlight
+        highlight_key <- paste0(component_id, "_default_highlight")
+        if (isTRUE(session$userData[[highlight_key]])) {
+          plotly::plotlyProxyInvoke(plot_proxy, "deleteTraces", list(-1))
+        }
+        
+        # Get the selected row data
+        selected_row <- current_data[point_index + 1, ]
+        
+        # Find x and y coordinates intelligently
+        # Strategy 1: Common column names
+        x_val <- if("x_val" %in% names(current_data)) selected_row[["x_val"]] else NULL
+        y_val <- if("y_val" %in% names(current_data)) selected_row[["y_val"]] else NULL
+        
+        # Strategy 2: First two numeric columns (excluding ID)
+        if (is.null(x_val) || is.null(y_val)) {
+          numeric_cols <- names(current_data)[sapply(current_data, is.numeric)]
+          numeric_cols <- numeric_cols[numeric_cols != component_info$shared_id_column]
+          if (length(numeric_cols) >= 2) {
+            if (is.null(x_val)) x_val <- selected_row[[numeric_cols[1]]]
+            if (is.null(y_val)) y_val <- selected_row[[numeric_cols[2]]]
+          }
+        }
+        
+        # Add simple visible highlight if we found coordinates
+        if (!is.null(x_val) && !is.null(y_val)) {
+          plotly::plotlyProxyInvoke(
+            plot_proxy,
+            "addTraces",
+            list(
+              x = list(x_val),
+              y = list(y_val),
+              mode = "markers",
+              marker = list(
+                size = 15,
+                color = "rgba(0, 123, 255, 0.7)",  # Blue highlight
+                symbol = "circle-open",
+                line = list(width = 3, color = "blue")
+              ),
+              showlegend = FALSE,
+              hoverinfo = "skip",
+              name = "default_highlight"
+            )
+          )
+          session$userData[[highlight_key]] <- TRUE
+        }
+      }
+    } else {
+      # Clear default highlight
+      highlight_key <- paste0(component_id, "_default_highlight")
+      if (isTRUE(session$userData[[highlight_key]])) {
+        plotly::plotlyProxyInvoke(plot_proxy, "deleteTraces", list(-1))
+        session$userData[[highlight_key]] <- FALSE
+      }
     }
-    
-    tryCatch({
-      plotly::plotlyProxyInvoke(
-        plot_proxy,
-        "restyle",
-        list(
-          "marker.size" = list(sizes),
-          "marker.color" = list(colors),
-          "marker.line.width" = list(ifelse(seq_len(n_points) == (point_index + 1), 2, 0)),
-          "marker.line.color" = list(ifelse(seq_len(n_points) == (point_index + 1), "darkred", "transparent"))
-        ),
-        list(0)  # trace index
-      )
-    }, error = function(e) {
-      cat("DEBUG: Error applying plotly highlight:", e$message, "\n")
-    })
-  } else {
-    # Reset all points to default appearance
-    cat("DEBUG: Clearing plotly highlights\n")
-    n_points <- nrow(current_data)
-    
-    tryCatch({
-      plotly::plotlyProxyInvoke(
-        plot_proxy,
-        "restyle",
-        list(
-          "marker.size" = list(rep(8, n_points)),
-          "marker.color" = list(rep("steelblue", n_points)),
-          "marker.line.width" = list(rep(0, n_points)),
-          "marker.line.color" = list(rep("transparent", n_points))
-        ),
-        list(0)  # trace index
-      )
-    }, error = function(e) {
-      cat("DEBUG: Error clearing plotly highlight:", e$message, "\n")
-    })
-  }
+  }, error = function(e) {
+    # Fallback: do nothing rather than break
+  })
 }

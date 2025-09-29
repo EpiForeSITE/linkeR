@@ -10,3 +10,4 @@
 ^\.lintr$
 ^NEWS\\.md$
 ^cran-comments\.md$
+^CRAN-SUBMISSION$

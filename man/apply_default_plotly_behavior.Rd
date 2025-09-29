@@ -19,6 +19,6 @@ apply_default_plotly_behavior(plot_proxy, selected_data, session, component_id)
 NULL (invisible). Function is called for side effects only.
 }
 \description{
-Applies the default visual highlighting behavior for a Plotly plot
-when a data point is selected or deselected.
+Simple, robust default highlighting using plotly's built-in selectedpoints.
+This works reliably across all plot types without complex coordinate detection.
 }

@@ -224,6 +224,10 @@ update_dt_selection <- function(component_id, selected_id, session, components) 
   }
 
   component_info <- components[[component_id]]
+  if (is.null(component_info)) {
+    return()
+  }
+  
   current_data <- component_info$data_reactive()
 
   # Validate shared ID column exists
