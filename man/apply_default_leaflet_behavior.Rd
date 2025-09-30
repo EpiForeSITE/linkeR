@@ -44,12 +44,3 @@ When \code{selected_data} is NULL (deselection):
 \item Removes all existing popups from the map
 }
 }
-\examples{
-\dontrun{
-# Apply default behavior when item is selected
-apply_default_leaflet_behavior(map_proxy, selected_row, component_info)
-
-# Apply default behavior when item is deselected
-apply_default_leaflet_behavior(map_proxy, NULL, component_info)
-}
-}

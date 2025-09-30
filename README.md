@@ -1,7 +1,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# linkeR: Effortless Linked Views for Shiny Applications
+# linkeR: Effortless Linked Views for 'shiny' Applications
 
 <!-- badges: start -->
 
@@ -20,7 +20,7 @@ Group](https://github.com/EpiForeSITE/software/raw/e82ed88f75e0fe5c0a1a3b38c2b94
 > **Create synchronized, interactive dashboards where one click updates
 > multiple components**
 
-`linkeR` makes it effortless to create linked views in Shiny
+`linkeR` makes it effortless to create linked views in 'shiny'
 applications. When users interact with one component (like clicking a
 map marker), all related components (tables, charts, other maps)
 automatically update to show corresponding information.
@@ -138,7 +138,7 @@ output$my_map <- renderLeaflet({
 | Leaflet Maps | ✅ Full Support | Interactive maps with markers, circles, polygons |
 | DT DataTables | ✅ Full Support | Sortable, filterable tables |
 | Plotly Charts | 🔄 Partial | Requires manual event handling |
-| Custom Components | 🔄 Partial | Any Shiny component with click events, Requires manual event handling |
+| Custom Components | 🔄 Partial | Any 'shiny' component with click events, Requires manual event handling |
 | Base R Plots | 📋 Planned | Static plots with click detection |
 | Mapbox | 📋 Planned | Alternative mapping solution |
 

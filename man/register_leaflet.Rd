@@ -17,7 +17,7 @@ register_leaflet(
 )
 }
 \arguments{
-\item{session}{Shiny session object. The session from the module where the DT is used. This could be global session in non-modular apps.}
+\item{session}{'shiny' session object. The session from the module where the DT is used. This could be global session in non-modular apps.}
 
 \item{registry}{A link registry created by \code{\link[=create_link_registry]{create_link_registry()}}}
 
@@ -35,11 +35,14 @@ register_leaflet(
 
 \item{click_handler}{Optional function: custom click handler for row selection, must have args (map_proxy, selected_data, session), overrides all default behavior}
 }
+\value{
+No return value, called for side effects.
+}
 \description{
 \code{register_leaflet} registers a Leaflet map for linking with other components.
 }
 \examples{
-\dontrun{
+\donttest{
   # Create a mock session for the example
   session <- shiny::MockShinySession$new()
 
@@ -57,7 +60,7 @@ register_leaflet(
   })
 
   # Register a leaflet component
-  register_leaflet(registry, "my_map", my_data, "id")
+  register_leaflet(session, registry, "my_map", my_data, "id")
 
   # Verify registration
   print(registry$get_components())

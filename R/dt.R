@@ -2,7 +2,7 @@
 #'
 #' `register_dt` registers a DT datatable for linking with other components.
 #'
-#' @param session Shiny session object. The session from the module where the DT is used. This could be global session in non-modular apps.
+#' @param session 'shiny' session object. The session from the module where the DT is used. This could be global session in non-modular apps.
 #' @param registry A link registry created by [create_link_registry()]
 #' @param dt_output_id Character string: the outputId of your [DT::DTOutput]
 #' @param data_reactive Reactive expression returning the data frame for the table
@@ -11,7 +11,7 @@
 #' @returns NULL (invisible). This function is called for its side effects of registering the component.
 #' @export
 #' @examples
-#' \dontrun{
+#' \donttest{
 #'   # Create a mock session for the example
 #'   session <- shiny::MockShinySession$new()
 #'
@@ -73,7 +73,7 @@ register_dt <- function(session, registry, dt_output_id, data_reactive, shared_i
 #' selection changes and synchronizes the component with the shared application state.
 #'
 #' @param component_id Character string. Unique identifier for the DataTable component.
-#' @param session Shiny session object. The current Shiny session for reactive context.
+#' @param session 'shiny' session object. The current 'shiny' session for reactive context.
 #' @param components List. Collection of UI components in the application.
 #' @param shared_state Reactive values object. Shared state container for cross-component communication.
 #' @param on_selection_change Function. Callback function to execute when table selection changes.
@@ -85,19 +85,6 @@ register_dt <- function(session, registry, dt_output_id, data_reactive, shared_i
 #' This function creates reactive observers that monitor DataTable interactions and
 #' update the shared state accordingly. It handles selection events and ensures
 #' proper synchronization between the DataTable component and other application components.
-#'
-#' @examples
-#' \dontrun{
-#' setup_datatable_observers(
-#'   component_id = "my_table",
-#'   session = session,
-#'   components = ui_components,
-#'   shared_state = app_state,
-#'   on_selection_change = function(selected_rows) {
-#'     # Handle selection change
-#'   }
-#' )
-#' }
 setup_datatable_observers <- function(component_id, session, components, shared_state, on_selection_change, registry = NULL) {
   # Use session userData to store the flag - this persists across observer calls
   flag_name <- paste0(component_id, "_updating_selection")
@@ -187,7 +174,7 @@ setup_datatable_observers <- function(component_id, session, components, shared_
 #'
 #' @param component_id Character string. The ID of the DT component to update.
 #' @param selected_id The shared ID value to select. If NULL, deselects all rows.
-#' @param session Shiny session object for the current user session.
+#' @param session 'shiny' session object for the current user session.
 #' @param components List containing component configuration information, including
 #'   data reactives, shared ID columns, and optional custom click handlers.
 #'
@@ -209,15 +196,6 @@ setup_datatable_observers <- function(component_id, session, components, shared_
 #' Otherwise, default row selection/deselection is performed.
 #'
 #' @return NULL (invisible). Function is called for side effects only.
-#'
-#' @examples
-#' \dontrun{
-#' # Update DT selection when ID "123" is selected
-#' update_dt_selection("my_table", "123", session, components)
-#' 
-#' # Deselect all rows
-#' update_dt_selection("my_table", NULL, session, components)
-#' }
 update_dt_selection <- function(component_id, selected_id, session, components) {
   if (!requireNamespace("DT", quietly = TRUE)) {
     return()

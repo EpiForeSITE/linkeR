@@ -10,7 +10,7 @@ home:
   title: "linkeR - Link Interactive Plots and Tables"
   description: >
     A simple interface to create bidirectional links between interactive 
-    plots and tables in Shiny applications.
+    plots and tables in 'shiny' applications.
 
 navbar:
   structure:
@@ -53,7 +53,7 @@ articles:
   contents:
   - getting-started
 
-- title: "Using with Shiny Modules"
+- title: "Using with 'shiny' Modules"
   navbar: ~
   contents:
   - using-with-modules

@@ -11,7 +11,7 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  eval = FALSE  # Set to FALSE since these are Shiny examples
+  eval = FALSE  # Set to FALSE since these are 'shiny' examples
 )
 ```
 
@@ -24,7 +24,7 @@ library(DT)
 
 # Introduction
 
-The `linkeR` package provides a simple way to create bidirectional links between interactive components in Shiny applications. When users click on one component (like a map marker), other linked components (like tables) automatically update to show related information.
+The `linkeR` package provides a simple way to create bidirectional links between interactive components in 'shiny' applications. When users click on one component (like a map marker), other linked components (like tables) automatically update to show related information.
 
 ## Core Concept
 

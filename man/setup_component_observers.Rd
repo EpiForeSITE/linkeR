@@ -20,7 +20,7 @@ setup_component_observers(
 \item{type}{Character string. The type of component to set up observers for.
 Currently supports "leaflet" and "datatable".}
 
-\item{session}{Shiny session object. The current Shiny session.}
+\item{session}{'shiny' session object. The current 'shiny' session.}
 
 \item{components}{List. Collection of all components in the application.}
 
