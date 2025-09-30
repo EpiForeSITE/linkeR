@@ -56,6 +56,18 @@ generate_business_data <- function() {
 ui <- fluidPage(
   theme = bs_theme(version = 5, bootswatch = "flatly"),
   titlePanel("Business Analytics Dashboard - Multiple Linking Scenarios"),
+  
+  # Add JavaScript handler for direct plot manipulation
+  tags$script(HTML("
+    Shiny.addCustomMessageHandler('eval', function(code) {
+      try {
+        eval(code);
+      } catch(e) {
+        console.error('JavaScript execution error:', e);
+      }
+    });
+  ")),
+  
   tabsetPanel(
     id = "main_tabs",
 
@@ -471,7 +483,7 @@ server <- function(input, output, session) {
       x = ~employees,
       y = ~annual_revenue,
       color = ~category,
-      customdata = ~business_id, # Crucial for linking!
+      key = ~business_id, # Crucial for linking!
       text = ~ paste("Name:", name, "<br>Category:", category, "<br>Employees:", employees, "<br>Revenue: $", format(annual_revenue, big.mark = ",")),
       type = "scatter", # Explicitly specify the trace type
       mode = "markers", # Explicitly specify the mode
@@ -485,8 +497,7 @@ server <- function(input, output, session) {
         showlegend = TRUE,
         legend = list(title = list(text = "Business Category"))
       ) %>%
-      config(displayModeBar = FALSE) %>% # Hide the plotly toolbar for cleaner look
-      plotly::event_register("plotly_click")  # Crucial for linking!
+      config(displayModeBar = FALSE) # Hide the plotly toolbar for cleaner look
   })
 
   output$multi_timeseries <- renderPlotly({

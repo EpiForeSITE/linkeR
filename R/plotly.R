@@ -471,11 +471,21 @@ update_plotly_selection <- function(component_id, selected_id, session, componen
 #' Apply Default Plotly Behavior for Selection Highlighting
 #'
 #' @description
-#' Implements native plotly-style selection highlighting for multi-trace plots.
-#' When a point is selected, it dims all other points to 40% opacity while 
-#' highlighting the selected point with full opacity and increased size.
-#' This works correctly with plots that use color grouping (e.g., `color = ~category`)
-#' which creates multiple traces.
+#' Implements selection highlighting using plotly's native selectedpoints mechanism.
+#' This leverages plotly's built-in selection system which works consistently across
+#' all chart types without hardcoded styling values.
+#' 
+#' @details
+#' This function uses plotly's native selection capabilities by:
+#' \itemize{
+#'   \item Finding points using key or customdata across all traces
+#'   \item Applying plotly's built-in selectedpoints styling
+#'   \item Using plotly's default selected/unselected appearance
+#'   \item Working generically across all plot types and trace structures
+#' }
+#' 
+#' The selection highlighting follows plotly's native behavior and appearance,
+#' ensuring consistency with user expectations and plotly's design system.
 #'
 #' @param plot_proxy plotlyProxy object for the target plot.
 #' @param selected_row Data frame row containing the selected data point, or NULL for deselection.  
@@ -489,78 +499,69 @@ apply_default_plotly_behavior <- function(plot_proxy, selected_row, session, com
   
   tryCatch({
     if (!is.null(selected_row) && nrow(selected_row) > 0) {
-      # Get component information and current data
       component_info <- session$userData[["linkeR_components"]][[component_id]]
       if (is.null(component_info)) return()
-      
-      current_data <- component_info$data_reactive()
       selected_id <- selected_row[[component_info$shared_id_column]][1]
-      
-      # Find which category the selected business belongs to
-      selected_business <- current_data[current_data[[component_info$shared_id_column]] == selected_id, ]
-      if (nrow(selected_business) > 0) {
-        selected_category <- selected_business$category[1]
-        
-        # Determine trace structure - plotly creates traces in sorted category order
-        category_order <- sort(unique(current_data$category))
-        target_trace_index <- which(category_order == selected_category) - 1  # 0-based for plotly
-        
-        # Find the point index within the target trace
-        category_businesses <- current_data[current_data$category == selected_category, ]
-        category_businesses <- category_businesses[order(category_businesses[[component_info$shared_id_column]]), ]
-        point_index_in_trace <- which(category_businesses[[component_info$shared_id_column]] == selected_id) - 1
-        
-        # Apply selection styling to all traces
-        for (trace_idx in 0:(length(category_order)-1)) {
-          tryCatch({
-            if (trace_idx == target_trace_index) {
-              # Target trace: dim all points except the selected one
-              num_points_in_trace <- nrow(category_businesses)
-              size_array <- rep(8, num_points_in_trace)
-              opacity_array <- rep(0.4, num_points_in_trace)
-              
-              # Highlight the selected point
-              if (point_index_in_trace >= 0 && point_index_in_trace < num_points_in_trace) {
-                size_array[point_index_in_trace + 1] <- 15  # R uses 1-based indexing
-                opacity_array[point_index_in_trace + 1] <- 1.0
+      js_code <- sprintf('
+        (function() {
+          var plotDiv = document.getElementById("%s");
+          if (!plotDiv || !plotDiv.data) return;
+          var targetId = "%s";
+          var selectedpoints = [];
+          var found = false;
+          for (var i = 0; i < plotDiv.data.length; i++) {
+            var trace = plotDiv.data[i];
+            var indices = [];
+            if (trace.key) {
+              for (var j = 0; j < trace.key.length; j++) {
+                if (String(trace.key[j]) === String(targetId)) {
+                  indices.push(j);
+                  found = true;
+                }
               }
-              
-              plot_proxy %>%
-                plotly::plotlyProxyInvoke("restyle", list(
-                  marker.size = list(size_array),
-                  marker.opacity = list(opacity_array)
-                ), list(trace_idx))
-            } else {
-              # Other traces: dim all points
-              other_category <- category_order[trace_idx + 1]  # R uses 1-based indexing
-              other_businesses <- current_data[current_data$category == other_category, ]
-              num_other_points <- nrow(other_businesses)
-              
-              if (num_other_points > 0) {
-                dim_size_array <- rep(8, num_other_points)
-                dim_opacity_array <- rep(0.4, num_other_points)
-                
-                plot_proxy %>%
-                  plotly::plotlyProxyInvoke("restyle", list(
-                    marker.size = list(dim_size_array),
-                    marker.opacity = list(dim_opacity_array)
-                  ), list(trace_idx))
+            } else if (trace.customdata) {
+              for (var j = 0; j < trace.customdata.length; j++) {
+                if (String(trace.customdata[j]) === String(targetId)) {
+                  indices.push(j);
+                  found = true;
+                }
               }
             }
-          }, error = function(e) {
-            # Silently handle individual trace errors
-          })
-        }
-      }
+            selectedpoints.push(indices.length > 0 ? indices : null);
+          }
+          if (found) {
+            Plotly.restyle(plotDiv, {
+              selectedpoints: selectedpoints,
+              selected: {
+                marker: {
+                  opacity: 1.0,
+                  size: 15,
+                  line: { width: 2, color: "darkblue" }
+                }
+              },
+              unselected: {
+                marker: { opacity: 0.4 }
+              }
+            });
+          }
+        })();
+      ', component_id, selected_id)
+      session$sendCustomMessage("eval", js_code)
     } else {
-      # Clear selection - reset all traces to default state
-      plot_proxy %>%
-        plotly::plotlyProxyInvoke("restyle", list(
-          marker.opacity = list(NULL),
-          marker.size = list(NULL)
-        ), NULL)
+      js_code <- sprintf('
+        (function() {
+          var plotDiv = document.getElementById("%s");
+          if (!plotDiv || !plotDiv.data) return;
+          Plotly.restyle(plotDiv, {
+            selectedpoints: null,
+            selected: null,
+            unselected: null
+          });
+        })();
+      ', component_id)
+      session$sendCustomMessage("eval", js_code)
     }
   }, error = function(e) {
-    # Silently handle errors in visual updates
+    # Silent error handling for visual updates
   })
 }

@@ -19,9 +19,19 @@ apply_default_plotly_behavior(plot_proxy, selected_row, session, component_id)
 NULL (invisible). Function is called for side effects only.
 }
 \description{
-Implements native plotly-style selection highlighting for multi-trace plots.
-When a point is selected, it dims all other points to 40\% opacity while
-highlighting the selected point with full opacity and increased size.
-This works correctly with plots that use color grouping (e.g., \code{color = ~category})
-which creates multiple traces.
+Implements selection highlighting using plotly's native selectedpoints mechanism.
+This leverages plotly's built-in selection system which works consistently across
+all chart types without hardcoded styling values.
+}
+\details{
+This function uses plotly's native selection capabilities by:
+\itemize{
+\item Finding points using key or customdata across all traces
+\item Applying plotly's built-in selectedpoints styling
+\item Using plotly's default selected/unselected appearance
+\item Working generically across all plot types and trace structures
+}
+
+The selection highlighting follows plotly's native behavior and appearance,
+ensuring consistency with user expectations and plotly's design system.
 }
