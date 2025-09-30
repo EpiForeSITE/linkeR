@@ -31,7 +31,22 @@ This function uses plotly's native selection capabilities by:
 \item Using plotly's default selected/unselected appearance
 \item Working generically across all plot types and trace structures
 }
+For native plotly selection highlighting to work, your Shiny UI must include a custom JavaScript message handler:
+\code{r}
+tags$script(HTML("
+Shiny.addCustomMessageHandler('eval', function(code) {
+try {
+eval(code);
+} catch(e) {
+console.error('JavaScript execution error:', e);
+}
+});
+"))
+\code{/r}
+
+This enables linkeR to send selection updates to plotly charts for visual feedback.
 
 The selection highlighting follows plotly's native behavior and appearance,
 ensuring consistency with user expectations and plotly's design system.
 }
+\keyword{internal}

@@ -32,3 +32,4 @@ NULL. This function is called for its side effects of setting up observers.
 \description{
 Sets up reactive observers for a Plotly component to handle user interactions.
 }
+\keyword{internal}

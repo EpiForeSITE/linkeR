@@ -22,3 +22,4 @@ NULL (invisible). Function is called for side effects only.
 Updates the selection state of a Plotly component when a shared ID
 is selected or deselected from another linked component.
 }
+\keyword{internal}

@@ -1,0 +1,636 @@
+---
+title: "Using Plotly with linkeR"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Using Plotly with linkeR}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE  # Set to FALSE since these are Shiny examples
+)
+```
+
+```{r setup}
+library(linkeR)
+library(shiny)
+library(plotly)
+library(DT)
+library(leaflet)
+```
+
+# Introduction
+
+The `linkeR` package provides seamless integration with `plotly` charts, enabling interactive linking between plotly visualizations and other Shiny components. This vignette demonstrates how to create linked plotly charts with automatic selection highlighting.
+
+## Key Features
+
+- **Automatic linking** with any plotly chart type (scatter, bar, histogram, etc.)
+- **Native selection highlighting** using plotly's built-in selectedpoints mechanism
+- **Zero-configuration setup** for most common use cases
+- **Custom behaviors** for advanced interactions
+- **Multi-trace support** for complex visualizations
+
+## Basic Plotly Linking
+
+### Simple Example
+
+The most basic way to link a plotly chart is using the `link_plots()` function:
+
+```{r basic-plotly}
+library(shiny)
+library(plotly)
+library(linkeR)
+
+# Sample data
+sample_data <- data.frame(
+  id = 1:20,
+  name = paste("Item", 1:20),
+  x_value = runif(20, 1, 10),
+  y_value = runif(20, 1, 10),
+  category = sample(c("A", "B", "C"), 20, replace = TRUE),
+  value = runif(20, 100, 1000)
+)
+
+ui <- fluidPage(
+  titlePanel("Basic Plotly Linking"),
+  
+  fluidRow(
+    column(6,
+      h4("Interactive Scatter Plot"),
+      plotlyOutput("scatter_plot")
+    ),
+    column(6,
+      h4("Data Table"),
+      DTOutput("data_table")
+    )
+  ),
+  
+  verbatimTextOutput("selection_info")
+)
+
+server <- function(input, output, session) {
+  # Create reactive data
+  data_reactive <- reactive({ sample_data })
+  
+  # Simple one-line linking setup
+  registry <- link_plots(
+    session,
+    scatter_plot = data_reactive,
+    data_table = data_reactive,
+    shared_id_column = "id"
+  )
+  
+  # Create plotly chart with key parameter for reliable linking
+  output$scatter_plot <- renderPlotly({
+    plot_ly(
+      data = sample_data,
+      x = ~x_value,
+      y = ~y_value,
+      color = ~category,
+      key = ~id,  # Essential for reliable linking
+      source = "scatter_plot",
+      type = "scatter",
+      mode = "markers"
+    ) %>%
+      layout(title = "Click any point to see linking")
+  })
+  
+  # Create data table
+  output$data_table <- renderDT({
+    datatable(
+      sample_data,
+      selection = "single",
+      options = list(pageLength = 5)
+    )
+  })
+  
+  # Show selection information
+  output$selection_info <- renderText({
+    selection <- registry$get_selection()
+    if (!is.null(selection$selected_id)) {
+      paste("Selected ID:", selection$selected_id, 
+            "| Source:", selection$source)
+    } else {
+      "No selection"
+    }
+  })
+}
+
+# Run the app
+if (interactive()) {
+  shinyApp(ui = ui, server = server)
+}
+```
+
+## Important Note: Enabling Visual Highlighting
+
+For DEFAULT plotly selection highlighting to work with linkeR, you must add a custom JavaScript message handler to your Shiny UI. This enables linkeR to send selection updates to the plotly chart for native visual feedback.
+
+Add the following to your `fluidPage()` or `dashboardPage()` UI definition:
+
+```{r, eval=FALSE}
+tags$script(HTML("
+  Shiny.addCustomMessageHandler('eval', function(code) {
+    try {
+      eval(code);
+    } catch(e) {
+      console.error('JavaScript execution error:', e);
+    }
+  });
+"))
+```
+
+This is required for linkeR's native selection highlighting to work in all linked plotly charts.
+
+## Essential Plotly Parameters
+
+For reliable linking, always include these parameters in your `plot_ly()` calls:
+
+### The `key` Parameter
+
+The `key` parameter is crucial for linking. It should reference your shared ID column:
+
+```{r key-parameter}
+plot_ly(
+  data = my_data,
+  x = ~x_column,
+  y = ~y_column,
+  key = ~id_column,  # This enables reliable point identification
+  source = "my_plot"
+)
+```
+
+### The `source` Parameter
+
+The `source` parameter identifies your plot for event handling:
+
+```{r source-parameter}
+plot_ly(
+  data = my_data,
+  x = ~x_column,
+  y = ~y_column,
+  key = ~id_column,
+  source = "unique_plot_name"  # Must match your output ID
+)
+```
+
+## Chart Types Support
+
+`linkeR` works with all plotly chart types through native selectedpoints highlighting:
+
+### Scatter Plots
+
+```{r scatter-example}
+output$scatter <- renderPlotly({
+  plot_ly(
+    data = data,
+    x = ~x_value,
+    y = ~y_value,
+    key = ~id,
+    source = "scatter",
+    type = "scatter",
+    mode = "markers"
+  )
+})
+```
+
+### Bar Charts
+
+```{r bar-example}
+output$bar_chart <- renderPlotly({
+  plot_ly(
+    data = aggregated_data,
+    x = ~category,
+    y = ~total_value,
+    key = ~category_id,  # Use appropriate ID for linking
+    source = "bar_chart",
+    type = "bar"
+  )
+})
+```
+
+### Line Charts
+
+```{r line-example}
+output$line_chart <- renderPlotly({
+  plot_ly(
+    data = time_series_data,
+    x = ~date,
+    y = ~value,
+    key = ~observation_id,
+    source = "line_chart",
+    type = "scatter",
+    mode = "lines+markers"
+  )
+})
+```
+
+### Multi-trace Charts
+
+For charts with multiple traces (e.g., using `color = ~category`), linkeR handles the complexity automatically:
+
+```{r multi-trace}
+output$multi_trace <- renderPlotly({
+  plot_ly(
+    data = data,
+    x = ~x_value,
+    y = ~y_value,
+    color = ~category,  # Creates multiple traces
+    key = ~id,         # Still works perfectly
+    source = "multi_trace",
+    type = "scatter",
+    mode = "markers"
+  )
+})
+```
+
+## Advanced Integration
+
+### Multiple Plotly Charts
+
+Link multiple plotly charts together for coordinated views:
+
+```{r multiple-charts}
+ui <- fluidPage(
+  titlePanel("Multiple Linked Plotly Charts"),
+  
+  fluidRow(
+    column(4,
+      h4("Scatter Plot"),
+      plotlyOutput("scatter", height = "300px")
+    ),
+    column(4,
+      h4("Bar Chart"),
+      plotlyOutput("bar", height = "300px")
+    ),
+    column(4,
+      h4("Box Plot"),
+      plotlyOutput("box", height = "300px")
+    )
+  ),
+  
+  verbatimTextOutput("multi_selection")
+)
+
+server <- function(input, output, session) {
+  data_reactive <- reactive({ sample_data })
+  
+  # Link all three charts
+  registry <- link_plots(
+    session,
+    scatter = data_reactive,
+    bar = data_reactive,
+    box = data_reactive,
+    shared_id_column = "id"
+  )
+  
+  # Scatter plot
+  output$scatter <- renderPlotly({
+    plot_ly(
+      data = sample_data,
+      x = ~x_value,
+      y = ~y_value,
+      key = ~id,
+      source = "scatter"
+    )
+  })
+  
+  # Aggregated bar chart
+  bar_data <- sample_data %>%
+    group_by(category) %>%
+    summarise(
+      mean_value = mean(value),
+      id = first(id),  # Use first ID for linking
+      .groups = 'drop'
+    )
+  
+  output$bar <- renderPlotly({
+    plot_ly(
+      data = bar_data,
+      x = ~category,
+      y = ~mean_value,
+      key = ~id,
+      source = "bar",
+      type = "bar"
+    )
+  })
+  
+  # Box plot
+  output$box <- renderPlotly({
+    plot_ly(
+      data = sample_data,
+      y = ~value,
+      color = ~category,
+      key = ~id,
+      source = "box",
+      type = "box"
+    )
+  })
+  
+  output$multi_selection <- renderText({
+    selection <- registry$get_selection()
+    paste("Selected:", selection$selected_id %||% "None")
+  })
+}
+```
+
+### Mixed Component Types
+
+Combine plotly charts with other interactive components:
+
+```{r mixed-components}
+ui <- fluidPage(
+  titlePanel("Mixed Component Dashboard"),
+  
+  fluidRow(
+    column(3,
+      h4("Map View"),
+      leafletOutput("map", height = "400px")
+    ),
+    column(4,
+      h4("Performance Chart"),
+      plotlyOutput("performance", height = "400px")
+    ),
+    column(5,
+      h4("Data Details"),
+      DTOutput("details")
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  business_data <- reactive({
+    data.frame(
+      business_id = 1:50,
+      name = paste("Business", 1:50),
+      latitude = runif(50, 40.7, 40.8),
+      longitude = runif(50, -111.95, -111.85),
+      revenue = runif(50, 100000, 1000000),
+      employees = sample(10:500, 50),
+      category = sample(c("Tech", "Retail", "Food"), 50, replace = TRUE)
+    )
+  })
+  
+  # Link map, chart, and table
+  registry <- link_plots(
+    session,
+    map = business_data,
+    performance = business_data,
+    details = business_data,
+    shared_id_column = "business_id"
+  )
+  
+  # Map
+  output$map <- renderLeaflet({
+    data <- business_data()
+    leaflet(data) %>%
+      addTiles() %>%
+      addMarkers(
+        lng = ~longitude,
+        lat = ~latitude,
+        layerId = ~business_id,
+        popup = ~name
+      )
+  })
+  
+  # Performance chart
+  output$performance <- renderPlotly({
+    data <- business_data()
+    plot_ly(
+      data = data,
+      x = ~employees,
+      y = ~revenue,
+      color = ~category,
+      key = ~business_id,
+      source = "performance",
+      text = ~paste("Name:", name),
+      hovertemplate = "%{text}<br>Employees: %{x}<br>Revenue: $%{y:,.0f}<extra></extra>"
+    ) %>%
+      layout(
+        title = "Revenue vs Employees",
+        xaxis = list(title = "Employees"),
+        yaxis = list(title = "Revenue ($)")
+      )
+  })
+  
+  # Data table
+  output$details <- renderDT({
+    datatable(
+      business_data(),
+      selection = "single",
+      options = list(pageLength = 8, scrollX = TRUE)
+    ) %>%
+      formatCurrency("revenue", currency = "$", digits = 0)
+  })
+}
+```
+
+## Selection Highlighting
+
+`linkeR` uses plotly's native `selectedpoints` mechanism for highlighting, which provides:
+
+- **Consistent behavior** across all chart types
+- **Automatic dimming** of unselected points
+- **Enhanced styling** for selected points
+- **Multi-trace support** without additional configuration
+
+### How It Works
+
+When a point is selected in any linked component:
+
+1. **Selected points** are highlighted with full opacity and increased size
+2. **Unselected points** are dimmed to 30% opacity
+3. **All traces** are processed automatically
+4. **Visual feedback** is immediate and consistent
+
+### Visual Customization
+
+The default highlighting can be customized through plotly's selected/unselected parameters:
+
+```{r custom-highlighting}
+plot_ly(
+  data = data,
+  x = ~x_value,
+  y = ~y_value,
+  key = ~id,
+  source = "custom_plot"
+) %>%
+  layout(
+    # Custom selection styling
+    selectdirection = "diagonal",
+    dragmode = "select"
+  )
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**Problem**: Linking doesn't work or selection highlighting is missing
+
+**Solutions**:
+1. Always include `key = ~id_column` in your `plot_ly()` call
+2. Ensure the `source` parameter matches your output ID
+3. Verify your shared ID column exists in the data
+4. Check that `register_plotly()` or `link_plots()` is called correctly
+
+**Problem**: Multiple traces don't highlight correctly
+
+**Solution**: linkeR handles multi-trace plots automatically. Ensure you're using the same ID column across all traces.
+
+**Problem**: There is no plotly visual update on selection
+
+**Solution**: Make sure the custom JavaScript handler is included in your UI for selection highlighting to work.
+
+### Best Practices
+
+1. **Always use the `key` parameter** for reliable point identification
+2. **Set consistent `source` names** that match your output IDs
+3. **Use meaningful ID columns** that uniquely identify your data points
+4. **Test with different chart types** to ensure consistent behavior
+5. **Keep data reactive** to ensure updates propagate correctly
+
+## Complete Example
+
+Here's a complete, runnable example demonstrating plotly integration:
+
+```{r complete-example}
+library(shiny)
+library(plotly)
+library(linkeR)
+library(DT)
+library(dplyr)
+
+# Generate sample data
+set.seed(123)
+categories <- c("Electronics", "Clothing", "Books")
+n <- 30
+sample_data <- data.frame(
+  business_id = paste0("PROD_", sprintf("%03d", 1:n)),
+  name = paste("Product", LETTERS[1:n]),
+  price = round(runif(n, 10, 100), 2),
+  sales = round(runif(n, 100, 1000), 0),
+  category = sample(categories, n, replace = TRUE),
+  rating = round(runif(n, 1, 5), 1),
+  stringsAsFactors = FALSE
+)
+# Defensive: Remove any rows with NA in key columns
+sample_data <- subset(sample_data, !is.na(business_id) & !is.na(name) & !is.na(category))
+
+ui <- fluidPage(
+  titlePanel("Complete Plotly + linkeR Example"),
+  tags$script(HTML("
+    Shiny.addCustomMessageHandler('eval', function(code) {
+      try {
+        eval(code);
+      } catch(e) {
+        console.error('JavaScript execution error:', e);
+      }
+    });
+  ")),
+  fluidRow(
+    column(7,
+      h4("Scatter Plot"),
+      plotlyOutput("scatter_plot", height = "400px"),
+      br(),
+      verbatimTextOutput("current_selection")
+    ),
+    column(5,
+      h4("Data Table"),
+      DTOutput("data_table")
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  data_reactive <- reactive({ sample_data })
+  # Use a fresh registry name to avoid conflicts
+  scatter_registry <- link_plots(
+    session,
+    scatter_plot = data_reactive,
+    data_table = data_reactive,
+    shared_id_column = "business_id"
+  )
+  
+  # Scatter plot
+  output$scatter_plot <- renderPlotly({
+    plot_ly(
+      data = sample_data,
+      x = ~price,
+      y = ~sales,
+      color = ~category,
+      key = ~business_id,
+      source = "scatter_plot",
+      text = ~paste("Product:", name, "<br>Category:", category, "<br>Rating:", rating),
+      hovertemplate = "%{text}<br>Price: $%{x:.2f}<br>Sales: %{y:.0f}<extra></extra>",
+      type = "scatter",
+      mode = "markers"
+    ) %>%
+      layout(
+        title = "Price vs Sales by Category",
+        xaxis = list(title = "Price ($)"),
+        yaxis = list(title = "Sales")
+      )
+  })
+  
+  # Data table
+  output$data_table <- renderDT({
+    datatable(
+      sample_data,
+      selection = "single",
+      rownames = FALSE,
+      options = list(
+        pageLength = 10,
+        scrollX = TRUE,
+        searchHighlight = TRUE
+      )
+    ) %>%
+      formatCurrency("price", currency = "$") %>%
+      formatRound(c("sales", "rating"), digits = c(0, 1))
+  })
+  
+  # Show current selection
+  output$current_selection <- renderText({
+    selection <- scatter_registry$get_selection()
+    if (!is.null(selection$selected_id)) {
+      selected_item <- sample_data[sample_data$business_id == selection$selected_id, ]
+      if (nrow(selected_item) > 0) {
+        paste0(
+          "Selected: ", selected_item$name, "\n",
+          "Category: ", selected_item$category, "\n",
+          "Price: $", selected_item$price, "\n",
+          "Sales: ", selected_item$sales, "\n",
+          "Rating: ", selected_item$rating, "\n",
+          "Source: ", selection$source
+        )
+      } else {
+        "No item selected"
+      }
+    } else {
+      "No item selected"
+    }
+  })
+}
+
+# Run the application
+if (interactive()) {
+  shinyApp(ui = ui, server = server)
+}
+```
+
+## Summary
+
+The `linkeR` package makes it easy to create interactive plotly charts that work seamlessly with other Shiny components. Key takeaways:
+
+- Use `key = ~id_column` for reliable linking
+- Set `source` parameter to match output IDs  
+- linkeR handles all chart types automatically
+- Native plotly highlighting provides consistent visual feedback
+- Mix plotly charts with maps, tables, and other components effortlessly
+
+For more examples, see the other vignettes and the package's example applications.

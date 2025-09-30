@@ -4,8 +4,8 @@
 #'
 #' @param event_data Plotly event data from event_data()
 #' @param component_info Component information from registry
-#' @return The extracted ID or NULL if extraction fails
 #' @keywords internal
+#' @return The extracted ID or NULL if extraction fails
 extract_plotly_id <- function(event_data, component_info) {
   if (is.null(event_data) || nrow(event_data) == 0) {
     return(NULL)
@@ -64,8 +64,8 @@ extract_plotly_id <- function(event_data, component_info) {
 #' @param clicked_x X coordinate from plotly event
 #' @param clicked_y Y coordinate from plotly event  
 #' @param id_column Name of the ID column
-#' @return The matched ID or NULL
 #' @keywords internal
+#' @return The matched ID or NULL
 smart_coordinate_lookup <- function(data, clicked_x, clicked_y, id_column) {
   x_is_numeric <- is.numeric(clicked_x)
   y_is_numeric <- is.numeric(clicked_y)
@@ -193,10 +193,27 @@ smart_coordinate_lookup <- function(data, clicked_x, clicked_y, id_column) {
 #' @returns Modified plotly object with linking parameters added
 #' @export
 #' @examples
-#' \dontrun{ TODO (update example to actually work)
-#' # Instead of manually adding customdata/key:
-#' p <- plot_ly(data = my_data, x = ~x_col, y = ~y_col, color = ~category)
-#' p <- prepare_plotly_linking(p, "my_id_column", "my_source")
+#' \donttest{
+#'   # Sample data
+#'   df <- data.frame(
+#'     id = 1:5,
+#'     value = c(10, 20, 15, 25, 30),
+#'     group = c("A", "A", "B", "B", "C")
+#'   )
+#'
+#'   # Create a plotly scatter plot
+#'   p <- plot_ly(
+#'     data = df,
+#'     x = ~value,
+#'     y = ~id,
+#'     color = ~group
+#'   )
+#'
+#'   # Prepare for linking (adds customdata and source)
+#'   p <- prepare_plotly_linking(p, "id", "my_plot")
+#'
+#'   # Print the plot object (for demonstration)
+#'   print(p)
 #' }
 prepare_plotly_linking <- function(plotly_obj, id_column, source) {
   if (!requireNamespace("plotly", quietly = TRUE)) {
@@ -245,7 +262,35 @@ prepare_plotly_linking <- function(plotly_obj, id_column, source) {
 #'   Function signature: function(plot_proxy, selected_data, session)
 #'   where selected_data is the row from data_reactive() or NULL to clear selection.
 #' @returns NULL (invisible). This function is called for its side effects.
-#' @examples TODO
+#' @examples
+#' \donttest{
+#'   # Create a mock session for the example
+#'   session <- shiny::MockShinySession$new()
+#'
+#'   # Create a registry
+#'   registry <- create_link_registry(session)
+#'
+#'   # Sample reactive data
+#'   my_data <- shiny::reactive({
+#'     data.frame(
+#'       id = 1:5,
+#'       name = c("A", "B", "C", "D", "E"),
+#'       value = 11:15
+#'     )
+#'   })
+#'
+#'   # Register a plotly component
+#'   register_plotly(
+#'     session,
+#'     registry,
+#'     plotly_output_id = "my_plot",
+#'     data_reactive = my_data,
+#'     shared_id_column = "id"
+#'   )
+#'
+#'   # Verify registration
+#'   print(registry$get_components())
+#' }
 #' @export
 register_plotly <- function(session, registry, plotly_output_id, data_reactive, shared_id_column,
                           event_types = c("plotly_click"), source = NULL,
@@ -273,9 +318,9 @@ register_plotly <- function(session, registry, plotly_output_id, data_reactive, 
   }
   
   # More user-friendly guidance
-  message("✓ plotly component '", plotly_output_id, "' registered for linking")
-  message("ℹ linkeR will automatically handle linking for most plot configurations")
-  message("ℹ If clicking doesn't work, add: customdata = ~", shared_id_column, " to your plot_ly() call")
+  message("* plotly component '", plotly_output_id, "' registered for linking")
+  message("* linkeR will automatically handle linking for most plot configurations")
+  message("* If clicking doesn't work, add: customdata = ~", shared_id_column, " to your plot_ly() call")
 
   # Register with the registry
   registry$register_component(
@@ -302,6 +347,7 @@ register_plotly <- function(session, registry, plotly_output_id, data_reactive, 
 #' @param shared_state Reactive values object. Shared state container for cross-component communication.
 #' @param on_selection_change Function. Callback function to execute when plot selection changes.
 #' @param registry List or NULL. Optional registry for component management. Defaults to NULL.
+#' @keywords internal
 #' @return NULL. This function is called for its side effects of setting up observers.
 setup_plotly_observers <- function(component_id, session, components, shared_state, on_selection_change, registry = NULL) {
   # Use session userData to store the flag - this persists across observer calls
@@ -417,6 +463,7 @@ setup_plotly_observers <- function(component_id, session, components, shared_sta
 #' @param selected_id The shared ID value to select. If NULL, deselects all points.
 #' @param session Shiny session object for the current user session.
 #' @param components List containing component configuration information.
+#' @keywords internal
 #' @return NULL (invisible). Function is called for side effects only.
 update_plotly_selection <- function(component_id, selected_id, session, components) {
   if (!requireNamespace("plotly", quietly = TRUE)) {
@@ -483,6 +530,20 @@ update_plotly_selection <- function(component_id, selected_id, session, componen
 #'   \item Using plotly's default selected/unselected appearance
 #'   \item Working generically across all plot types and trace structures
 #' }
+#' For native plotly selection highlighting to work, your Shiny UI must include a custom JavaScript message handler:
+#' \code{r}
+#'   tags$script(HTML("
+#'     Shiny.addCustomMessageHandler('eval', function(code) {
+#'       try {
+#'         eval(code);
+#'       } catch(e) {
+#'         console.error('JavaScript execution error:', e);
+#'       }
+#'     });
+#'   "))
+#' \code{/r}
+#' 
+#' This enables linkeR to send selection updates to plotly charts for visual feedback.
 #' 
 #' The selection highlighting follows plotly's native behavior and appearance,
 #' ensuring consistency with user expectations and plotly's design system.
@@ -491,6 +552,7 @@ update_plotly_selection <- function(component_id, selected_id, session, componen
 #' @param selected_row Data frame row containing the selected data point, or NULL for deselection.  
 #' @param session Shiny session object for the current user session.
 #' @param component_id Character string. ID of the plotly component for reference.
+#' @keywords internal
 #' @return NULL (invisible). Function is called for side effects only.
 apply_default_plotly_behavior <- function(plot_proxy, selected_row, session, component_id) {
   if (!requireNamespace("plotly", quietly = TRUE)) {

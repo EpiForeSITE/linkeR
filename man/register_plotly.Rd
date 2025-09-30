@@ -43,5 +43,32 @@ The default behavior uses plotly's built-in point selection highlighting, which
 is simple and works reliably across all plot types.
 }
 \examples{
-TODO
+\dontrun{
+  # Create a mock session for the example
+  session <- shiny::MockShinySession$new()
+
+  # Create a registry
+  registry <- create_link_registry(session)
+
+  # Sample reactive data
+  my_data <- shiny::reactive({
+    data.frame(
+      id = 1:5,
+      name = c("A", "B", "C", "D", "E"),
+      value = 11:15
+    )
+  })
+
+  # Register a plotly component
+  register_plotly(
+    session,
+    registry,
+    plotly_output_id = "my_plot",
+    data_reactive = my_data,
+    shared_id_column = "id"
+  )
+
+  # Verify registration
+  print(registry$get_components())
+}
 }
