@@ -507,42 +507,63 @@ apply_default_plotly_behavior <- function(plot_proxy, selected_row, session, com
           var plotDiv = document.getElementById("%s");
           if (!plotDiv || !plotDiv.data) return;
           var targetId = "%s";
-          var selectedpoints = [];
           var found = false;
+          
+          // Process each trace individually
           for (var i = 0; i < plotDiv.data.length; i++) {
             var trace = plotDiv.data[i];
             var indices = [];
+            var hasSelected = false;
+            
+            // Check key first (preferred)
             if (trace.key) {
               for (var j = 0; j < trace.key.length; j++) {
                 if (String(trace.key[j]) === String(targetId)) {
                   indices.push(j);
+                  hasSelected = true;
                   found = true;
                 }
               }
-            } else if (trace.customdata) {
+            } 
+            // Fall back to customdata
+            else if (trace.customdata) {
               for (var j = 0; j < trace.customdata.length; j++) {
                 if (String(trace.customdata[j]) === String(targetId)) {
                   indices.push(j);
+                  hasSelected = true;
                   found = true;
                 }
               }
             }
-            selectedpoints.push(indices.length > 0 ? indices : null);
-          }
-          if (found) {
-            Plotly.restyle(plotDiv, {
-              selectedpoints: selectedpoints,
-              selected: {
-                marker: {
-                  opacity: 1.0,
-                  size: 15,
-                  line: { width: 2, color: "darkblue" }
+            
+            // Apply styling to this specific trace
+            if (hasSelected) {
+              // This trace has the selected point
+              Plotly.restyle(plotDiv, {
+                selectedpoints: [indices],
+                selected: {
+                  marker: {
+                    opacity: 1.0,
+                    size: 12,
+                    line: { width: 2, color: "darkblue" }
+                  }
+                },
+                unselected: {
+                  marker: { opacity: 0.3 },
+                  textfont: { color: "gray" }
                 }
-              },
-              unselected: {
-                marker: { opacity: 0.4 }
-              }
-            });
+              }, [i]);
+            } else {
+              // This trace does not have the selected point - dim everything
+              Plotly.restyle(plotDiv, {
+                selectedpoints: [[]],
+                selected: null,
+                unselected: {
+                  marker: { opacity: 0.3 },
+                  textfont: { color: "gray" }
+                }
+              }, [i]);
+            }
           }
         })();
       ', component_id, selected_id)
