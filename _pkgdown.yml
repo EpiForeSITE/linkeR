@@ -31,6 +31,8 @@ reference:
   - create_link_registry
   - register_leaflet
   - register_dt
+  - register_plotly
+  - prepare_plotly_linking
 
 - title: "Internal Functions"
   desc: "Internal functions for advanced users"
@@ -72,3 +74,8 @@ articles:
   navbar: ~
   contents:
   - sf-integration
+
+- title: "Using plotly"
+  navbar: ~
+  contents:
+  - using-plotly

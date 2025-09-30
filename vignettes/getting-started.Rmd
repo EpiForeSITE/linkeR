@@ -106,14 +106,15 @@ shinyApp(ui, server)
 For linking to work, you need:
 
 1. **Shared ID column**: All linked datasets must have a common identifier column
-2. **Matching layerId/rowId**: Components must use the shared ID for selection
+2. **Matching layerId/rowId**: Components must use the shared ID for selection. For example, `layerId` in `leaflet`, row names in `DT`, and `customdata` or `key` in `plotly`.
 3. **Reactive data**: Data must be wrapped in `reactive()`
 
 ## What Happens When You Click?
 
 - **Map marker click**: Table selects corresponding row
 - **Table row click**: Map zooms to marker and shows popup
-- **Consistent behavior**: Both interactions produce the same visual result
+- **Chart row click**: Dim all other points, highlight selected point
+- **Consistent behavior**: All interactions produce the same visual result
 
 # Next Steps
 

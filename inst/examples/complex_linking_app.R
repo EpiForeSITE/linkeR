@@ -56,6 +56,18 @@ generate_business_data <- function() {
 ui <- fluidPage(
   theme = bs_theme(version = 5, bootswatch = "flatly"),
   titlePanel("Business Analytics Dashboard - Multiple Linking Scenarios"),
+  
+  # Add JavaScript handler for direct plot manipulation
+  tags$script(HTML("
+    Shiny.addCustomMessageHandler('eval', function(code) {
+      try {
+        eval(code);
+      } catch(e) {
+        console.error('JavaScript execution error:', e);
+      }
+    });
+  ")),
+  
   tabsetPanel(
     id = "main_tabs",
 
@@ -471,7 +483,7 @@ server <- function(input, output, session) {
       x = ~employees,
       y = ~annual_revenue,
       color = ~category,
-      key = ~business_id, # This is crucial for linking!
+      key = ~business_id, # Crucial for linking!
       text = ~ paste("Name:", name, "<br>Category:", category, "<br>Employees:", employees, "<br>Revenue: $", format(annual_revenue, big.mark = ",")),
       type = "scatter", # Explicitly specify the trace type
       mode = "markers", # Explicitly specify the mode
@@ -486,8 +498,6 @@ server <- function(input, output, session) {
         legend = list(title = list(text = "Business Category"))
       ) %>%
       config(displayModeBar = FALSE) # Hide the plotly toolbar for cleaner look
-
-    return(p)
   })
 
   output$multi_timeseries <- renderPlotly({
@@ -531,7 +541,6 @@ server <- function(input, output, session) {
               showlegend = FALSE
             ) %>%
             config(displayModeBar = FALSE)
-
           return(p)
         }
       }
@@ -563,19 +572,9 @@ server <- function(input, output, session) {
         session,
         multi_map = business_data,
         multi_table = business_data,
+        multi_chart = business_data,
         shared_id_column = "business_id"
       )
-
-      # Add plotly click handling
-      # This is essentially an observer for plotly clicks to update the registry selection manually
-      # This is necessary because plotly does not automatically trigger the registry
-      # This paradigm allows for any custom behavior to access the registry
-      observeEvent(event_data("plotly_click", source = "multi_chart"), {
-        clicked_data <- event_data("plotly_click", source = "multi_chart")
-        if (!is.null(clicked_data) && !is.null(clicked_data$key)) {
-          registries$multi$set_selection(clicked_data$key, "multi_chart")
-        }
-      })
     }
   })
 

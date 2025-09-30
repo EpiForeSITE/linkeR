@@ -137,10 +137,28 @@ output$my_map <- renderLeaflet({
 |----|----|----|
 | Leaflet Maps | ✅ Full Support | Interactive maps with markers, circles, polygons |
 | DT DataTables | ✅ Full Support | Sortable, filterable tables |
-| Plotly Charts | 🔄 Partial | Requires manual event handling |
+| Plotly Charts | 🔄 Partial | Single selection supported |
 | Custom Components | 🔄 Partial | Any 'shiny' component with click events, Requires manual event handling |
 | Base R Plots | 📋 Planned | Static plots with click detection |
 | Mapbox | 📋 Planned | Alternative mapping solution |
+
+## Plotly visual feedback
+
+For native plotly selection highlighting to work, your Shiny UI must include a custom JavaScript message handler:
+
+```r
+tags$script(HTML("
+  Shiny.addCustomMessageHandler('eval', function(code) {
+    try {
+      eval(code);
+    } catch(e) {
+      console.error('JavaScript execution error:', e);
+    }
+  });
+"))
+```
+
+This enables linkeR to send selection updates to plotly charts for visual feedback.
 
 ## Contributing
 

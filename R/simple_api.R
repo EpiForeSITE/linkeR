@@ -32,6 +32,9 @@
 #' @param dt_click_handler Optional function that handles DT row selections.
 #'   This will be used for both direct clicks and when other components select this row.
 #'   Function should accept (dt_proxy, selected_data, session).
+#' @param plotly_click_handler Optional function that handles plotly point clicks.
+#'   This will be used for both direct clicks and when other components select this point.
+#'   Function should accept (plot_proxy, selected_data, session).
 #' @param on_selection_change Optional callback function that gets called when selection changes.
 #'   Function should accept parameters: (selected_id, selected_data, source_component_id, session)
 #' @return Invisibly returns the created registry object
@@ -96,6 +99,7 @@ link_plots <- function(session, ..., shared_id_column,
                        leaflet_lat_col = "latitude",
                        leaflet_click_handler = NULL,
                        dt_click_handler = NULL,
+                       plotly_click_handler = NULL,
                        on_selection_change = NULL) {
   # Validate inputs
   if (missing(session)) {
@@ -173,6 +177,25 @@ link_plots <- function(session, ..., shared_id_column,
         shared_id_column = shared_id_column,
         click_handler = dt_click_handler
       )
+      
+    } else if (comp_type == "plotly") {
+      # validate that component has shared_id_column
+      if (!shared_id_column %in% names(isolate(comp_data()))) {
+        stop(
+          "Component '", comp_name, "' data must contain the shared_id_column: ",
+          shared_id_column
+        )
+      }
+
+      # USE REGISTER_PLOTLY FUNCTION
+      register_plotly(
+        session = session,  # this is just the global session in the case of single file applications
+        registry = registry,
+        plotly_output_id = comp_name,
+        data_reactive = comp_data,
+        shared_id_column = shared_id_column,
+        click_handler = plotly_click_handler  # Pass through the handler
+      )
     }
   }
 
@@ -224,6 +247,8 @@ detect_component_type <- function(component_id, data_reactive) {
     return("leaflet")
   } else if (grepl("table|dt", id_lower)) {
     return("datatable")
+  } else if (grepl("plot|chart|graph|plotly", id_lower)) {
+    return("plotly")
   } else {
     # Default assumption - could be made smarter
     warning(

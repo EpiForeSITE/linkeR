@@ -105,7 +105,7 @@ server <- function(input, output, session) {
       data = business_data(),
       x = ~employees,
       y = ~revenue,
-      key = ~business_id,  # Critical: this enables plotly linking
+      customdata = ~business_id,  # Critical: this enables plotly linking
       text = ~name,
       type = "scatter",
       mode = "markers",
@@ -123,17 +123,9 @@ server <- function(input, output, session) {
     session,
     map = business_data,
     table = business_data,
+    chart = business_data,
     shared_id_column = "business_id"
   )
-  
-  # Handle plotly clicks separately
-  observeEvent(event_data("plotly_click", source = "business_chart"), {
-    clicked_data <- event_data("plotly_click", source = "business_chart")
-    if (!is.null(clicked_data) && !is.null(clicked_data$key)) {
-      # Update the registry selection
-      registry$set_selection(clicked_data$key, "chart")
-    }
-  })
   
   # Display selection info
   output$selection_info <- renderText({
@@ -195,53 +187,6 @@ link_plots(
 )
 ```
 
-### Time Series Charts
-
-For dynamic charts that update based on selection:
-
-```{r time-series}
-# Reactive chart that updates with selection
-output$monthly_trend <- renderPlotly({
-  registry <- get_registry()  # However you store your registry
-  selection <- registry$get_selection()
-  
-  if (!is.null(selection$selected_id)) {
-    # Get monthly data for selected business
-    selected_business <- business_data()[
-      business_data()$business_id == selection$selected_id, 
-    ]
-    
-    # Generate monthly data (example)
-    monthly_data <- data.frame(
-      month = 1:12,
-      revenue = selected_business$revenue / 12 * runif(12, 0.8, 1.2)
-    )
-    
-    plot_ly(
-      data = monthly_data,
-      x = ~month,
-      y = ~revenue,
-      type = "scatter",
-      mode = "lines+markers"
-    ) %>%
-      layout(
-        title = paste("Monthly Trend:", selected_business$name),
-        xaxis = list(title = "Month"),
-        yaxis = list(title = "Revenue")
-      )
-  } else {
-    # Empty chart with instructions
-    plot_ly() %>%
-      add_annotations(
-        text = "Select a business to view trends",
-        x = 0.5, y = 0.5,
-        xref = "paper", yref = "paper",
-        showarrow = FALSE
-      )
-  }
-})
-```
-
 ## Managing Complex State
 
 For complex dashboards, you might want centralized state management:
@@ -254,7 +199,15 @@ server <- function(input, output, session) {
   
   # Business data
   business_data <- reactive({ 
-    # your data
+    data.frame(
+      business_id = paste0("BIZ_", 1:20),
+      name = paste("Business", 1:20),
+      latitude = runif(20, 40.7, 40.8),
+      longitude = runif(20, -111.95, -111.85),
+      revenue = runif(20, 100000, 1000000),
+      employees = sample(10:100, 20, replace = TRUE),
+      category = sample(c("Tech", "Retail", "Food"), 20, replace = TRUE)
+    )
    })
   
   # Set up linking with global callback
@@ -267,9 +220,6 @@ server <- function(input, output, session) {
     # Update centralized state
     on_selection_change = function(selected_id, selected_data, source_id, session) {
       current_selection(selected_data)
-      
-      # Log for debugging
-      cat("Selection changed:", selected_id, "from", source_id, "\n")
     }
   )
   

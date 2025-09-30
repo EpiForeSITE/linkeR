@@ -12,6 +12,7 @@ link_plots(
   leaflet_lat_col = "latitude",
   leaflet_click_handler = NULL,
   dt_click_handler = NULL,
+  plotly_click_handler = NULL,
   on_selection_change = NULL
 )
 }
@@ -39,6 +40,10 @@ Function should accept (map_proxy, selected_data, session).}
 \item{dt_click_handler}{Optional function that handles DT row selections.
 This will be used for both direct clicks and when other components select this row.
 Function should accept (dt_proxy, selected_data, session).}
+
+\item{plotly_click_handler}{Optional function that handles plotly point clicks.
+This will be used for both direct clicks and when other components select this point.
+Function should accept (plot_proxy, selected_data, session).}
 
 \item{on_selection_change}{Optional callback function that gets called when selection changes.
 Function should accept parameters: (selected_id, selected_data, source_component_id, session)}
