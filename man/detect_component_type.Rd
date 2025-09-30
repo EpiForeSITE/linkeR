@@ -20,7 +20,7 @@ Character string indicating the detected component type:
 }
 \description{
 \code{detect_component_type} is an internal function that attempts to automatically determine the type of
-Shiny output component based on common naming patterns in the component ID.
+'shiny' output component based on common naming patterns in the component ID.
 This function uses simple heuristics to classify components as either
 "leaflet" (for maps) or "datatable" (for tables), with "datatable" as the
 default fallback.

@@ -2,7 +2,7 @@
 #'
 #' `register_leaflet` registers a Leaflet map for linking with other components.
 #'
-#' @param session Shiny session object. The session from the module where the DT is used. This could be global session in non-modular apps.
+#' @param session 'shiny' session object. The session from the module where the DT is used. This could be global session in non-modular apps.
 #' @param registry A link registry created by [create_link_registry()]
 #' @param leaflet_output_id Character string: the outputId of your leafletOutput
 #' @param data_reactive Reactive expression returning the data frame for the map
@@ -11,9 +11,10 @@
 #' @param lat_col Character string: name of latitude column (default: "latitude")
 #' @param highlight_zoom Numeric: zoom level when highlighting (default: 12)
 #' @param click_handler Optional function: custom click handler for row selection, must have args (map_proxy, selected_data, session), overrides all default behavior
+#' @return No return value, called for side effects.
 #' @export
 #' @examples
-#' \dontrun{
+#' \donttest{
 #'   # Create a mock session for the example
 #'   session <- shiny::MockShinySession$new()
 #'
@@ -31,7 +32,7 @@
 #'   })
 #'
 #'   # Register a leaflet component
-#'   register_leaflet(registry, "my_map", my_data, "id")
+#'   register_leaflet(session, registry, "my_map", my_data, "id")
 #'
 #'   # Verify registration
 #'   print(registry$get_components())
@@ -96,7 +97,7 @@ register_leaflet <- function(session, registry, leaflet_output_id, data_reactive
 #' responds to selection changes from other linked components.
 #'
 #' @param component_id Character string. The unique identifier for the Leaflet component.
-#' @param session Shiny session object for the current user session.
+#' @param session 'shiny' session object for the current user session.
 #' @param components List containing component configuration data including data reactives
 #'   and shared ID columns.
 #' @param shared_state Reactive values object containing selected_id and selection_source
@@ -119,18 +120,6 @@ register_leaflet <- function(session, registry, leaflet_output_id, data_reactive
 #' The selection response observer:
 #' - Only responds to selections from other components (not self-selections)
 #' - Updates the map visualization to reflect the new selection
-#'
-#' @examples
-#' \dontrun{
-#' observers <- setup_leaflet_observers(
-#'   component_id = "map1",
-#'   session = session,
-#'   components = components_list,
-#'   shared_state = shared_values,
-#'   on_selection_change = NULL,
-#'   registry = selection_registry
-#' )
-#' }
 setup_leaflet_observers <- function(component_id, session, components, shared_state, on_selection_change, registry = NULL) {
   # Observer for map marker clicks
   observer1 <- shiny::observeEvent(session$input[[paste0(component_id, "_marker_click")]],
@@ -229,16 +218,6 @@ setup_leaflet_observers <- function(component_id, session, components, shared_st
 #' \itemize{
 #'   \item Removes all existing popups from the map
 #' }
-#'
-#' @examples
-#' \dontrun{
-#' # Apply default behavior when item is selected
-#' apply_default_leaflet_behavior(map_proxy, selected_row, component_info)
-#'
-#' # Apply default behavior when item is deselected
-#' apply_default_leaflet_behavior(map_proxy, NULL, component_info)
-#' }
-# Helper function for consistent default leaflet behavior
 apply_default_leaflet_behavior <- function(map_proxy, selected_data, component_info) {
   if (!is.null(selected_data)) {
     # Create default popup content
@@ -272,7 +251,7 @@ apply_default_leaflet_behavior <- function(map_proxy, selected_data, component_i
 #' @param component_id Character string. The ID of the Leaflet map component to update.
 #' @param selected_id Character string or NULL. The ID of the selected item. If NULL,
 #'   indicates deselection.
-#' @param session Shiny session object. The current Shiny session.
+#' @param session 'shiny' session object. The current 'shiny' session.
 #' @param components List. A named list containing component information, where each
 #'   element contains component configuration including data_reactive, shared_id_column,
 #'   and config settings.
@@ -295,13 +274,6 @@ apply_default_leaflet_behavior <- function(map_proxy, selected_data, component_i
 #' }
 #'
 #' @return NULL (invisibly). The function is called for its side effects on the Leaflet map.
-#' @examples
-#' \dontrun{
-#' # Update the map with a new selection
-#' update_leaflet_selection("my_map", "selected_id", session, components)
-#' #' # Deselect the map
-#' update_leaflet_selection("my_map", NULL, session, components)
-#' }
 #' 
 #' @note If the leaflet package is not available, the function returns early without error.
 #'   Missing required columns will generate a warning and cause early return.

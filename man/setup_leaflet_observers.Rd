@@ -16,7 +16,7 @@ setup_leaflet_observers(
 \arguments{
 \item{component_id}{Character string. The unique identifier for the Leaflet component.}
 
-\item{session}{Shiny session object for the current user session.}
+\item{session}{'shiny' session object for the current user session.}
 
 \item{components}{List containing component configuration data including data reactives
 and shared ID columns.}
@@ -52,17 +52,5 @@ The selection response observer:
 \itemize{
 \item Only responds to selections from other components (not self-selections)
 \item Updates the map visualization to reflect the new selection
-}
-}
-\examples{
-\dontrun{
-observers <- setup_leaflet_observers(
-  component_id = "map1",
-  session = session,
-  components = components_list,
-  shared_state = shared_values,
-  on_selection_change = NULL,
-  registry = selection_registry
-)
 }
 }

@@ -11,7 +11,7 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  eval = FALSE  # Set to FALSE since these are Shiny examples
+  eval = FALSE  # Set to FALSE since these are 'shiny' examples
 )
 ```
 

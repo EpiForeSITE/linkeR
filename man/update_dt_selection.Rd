@@ -11,7 +11,7 @@ update_dt_selection(component_id, selected_id, session, components)
 
 \item{selected_id}{The shared ID value to select. If NULL, deselects all rows.}
 
-\item{session}{Shiny session object for the current user session.}
+\item{session}{'shiny' session object for the current user session.}
 
 \item{components}{List containing component configuration information, including
 data reactives, shared ID columns, and optional custom click handlers.}
@@ -43,12 +43,3 @@ the DT proxy, selected data (or NULL for deselection), and session.
 Otherwise, default row selection/deselection is performed.
 }
 
-\examples{
-\dontrun{
-# Update DT selection when ID "123" is selected
-update_dt_selection("my_table", "123", session, components)
-
-# Deselect all rows
-update_dt_selection("my_table", NULL, session, components)
-}
-}

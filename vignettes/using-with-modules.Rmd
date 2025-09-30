@@ -1,8 +1,8 @@
 ---
-title: "Using linkeR with Shiny Modules"
+title: "Using linkeR with 'shiny' Modules"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Using linkeR with Shiny Modules}
+  %\VignetteIndexEntry{Using linkeR with 'shiny' Modules}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -11,7 +11,7 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  eval = FALSE  # Set to FALSE since these are Shiny examples
+  eval = FALSE  # Set to FALSE since these are 'shiny' examples
 )
 ```
 
@@ -24,9 +24,9 @@ library(DT)
 
 ## Introduction: Why a Different Approach for Modules?
 
-While `link_plots()` is perfect for single-file Shiny applications, a more robust pattern is needed when working with **Shiny Modules**. This is because modules are designed to be self-contained and reusable, a principle known as **encapsulation**.
+While `link_plots()` is perfect for single-file 'shiny' applications, a more robust pattern is needed when working with **'shiny' Modules**. This is because modules are designed to be self-contained and reusable, a principle known as **encapsulation**.
 
-The main app should not need to know the internal `outputId`s of the components within a module. For `linkeR` to work correctly, it needs to be aware of the unique "namespace" that Shiny gives to each module's UI elements.
+The main app should not need to know the internal `outputId`s of the components within a module. For `linkeR` to work correctly, it needs to be aware of the unique "namespace" that 'shiny' gives to each module's UI elements.
 
 The recommended pattern for modular apps follows three simple steps that respect module encapsulation and lead to cleaner, more maintainable code.
 

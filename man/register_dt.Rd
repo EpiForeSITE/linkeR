@@ -14,7 +14,7 @@ register_dt(
 )
 }
 \arguments{
-\item{session}{Shiny session object. The session from the module where the DT is used. This could be global session in non-modular apps.}
+\item{session}{'shiny' session object. The session from the module where the DT is used. This could be global session in non-modular apps.}
 
 \item{registry}{A link registry created by \code{\link[=create_link_registry]{create_link_registry()}}}
 
@@ -33,7 +33,7 @@ NULL (invisible). This function is called for its side effects of registering th
 \code{register_dt} registers a DT datatable for linking with other components.
 }
 \examples{
-\dontrun{
+\donttest{
   # Create a mock session for the example
   session <- shiny::MockShinySession$new()
 
