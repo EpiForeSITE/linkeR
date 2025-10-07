@@ -21,9 +21,28 @@ Utility function to automatically add required parameters to a plotly object
 for reliable linking, regardless of plot structure (single/multiple traces).
 }
 \examples{
-\dontrun{
-# Instead of manually adding customdata/key:
-p <- plot_ly(data = iris, x = ~Sepal.Length, y = ~Sepal.Width, color = ~Species)
-p <- prepare_plotly_linking(p, "Species", "iris_plot")
+\donttest{
+   library(plotly)
+
+  # Sample data
+  df <- data.frame(
+    id = 1:5,
+    value = c(10, 20, 15, 25, 30),
+    group = c("A", "A", "B", "B", "C")
+  )
+
+  # Create a plotly scatter plot
+  p <- plot_ly(
+    data = df,
+    x = ~value,
+    y = ~id,
+    color = ~group
+  )
+
+  # Prepare for linking (adds customdata and source)
+  p <- prepare_plotly_linking(p, "id", "my_plot")
+
+  # Print the plot object (for demonstration)
+  print(p)
 }
 }

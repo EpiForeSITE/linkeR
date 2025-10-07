@@ -187,6 +187,7 @@ smart_coordinate_lookup <- function(data, clicked_x, clicked_y, id_column) {
 #' Utility function to automatically add required parameters to a plotly object
 #' for reliable linking, regardless of plot structure (single/multiple traces).
 #'
+#' @importFrom stats as.formula 
 #' @param plotly_obj A plotly object created with plot_ly()
 #' @param id_column Character string: name of the ID column in the data
 #' @param source Character string: plotly source identifier
@@ -194,6 +195,8 @@ smart_coordinate_lookup <- function(data, clicked_x, clicked_y, id_column) {
 #' @export
 #' @examples
 #' \donttest{
+#'    library(plotly)
+#' 
 #'   # Sample data
 #'   df <- data.frame(
 #'     id = 1:5,
@@ -531,17 +534,17 @@ update_plotly_selection <- function(component_id, selected_id, session, componen
 #'   \item Working generically across all plot types and trace structures
 #' }
 #' For native plotly selection highlighting to work, your Shiny UI must include a custom JavaScript message handler:
-#' \code{r}
-#'   tags$script(HTML("
-#'     Shiny.addCustomMessageHandler('eval', function(code) {
-#'       try {
-#'         eval(code);
-#'       } catch(e) {
-#'         console.error('JavaScript execution error:', e);
-#'       }
-#'     });
-#'   "))
-#' \code{/r}
+#' \preformatted{
+#' tags$script(HTML("
+#'   Shiny.addCustomMessageHandler('eval', function(code) {
+#'     try {
+#'       eval(code);
+#'     } catch(e) {
+#'       console.error('JavaScript execution error:', e);
+#'     }
+#'   });
+#' "))
+#' }
 #' 
 #' This enables linkeR to send selection updates to plotly charts for visual feedback.
 #' 

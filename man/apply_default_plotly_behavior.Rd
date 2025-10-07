@@ -32,17 +32,17 @@ This function uses plotly's native selection capabilities by:
 \item Working generically across all plot types and trace structures
 }
 For native plotly selection highlighting to work, your Shiny UI must include a custom JavaScript message handler:
-\code{r}
+\preformatted{
 tags$script(HTML("
-Shiny.addCustomMessageHandler('eval', function(code) {
-try {
-eval(code);
-} catch(e) {
-console.error('JavaScript execution error:', e);
-}
-});
+  Shiny.addCustomMessageHandler('eval', function(code) {
+    try {
+      eval(code);
+    } catch(e) {
+      console.error('JavaScript execution error:', e);
+    }
+  });
 "))
-\code{/r}
+}
 
 This enables linkeR to send selection updates to plotly charts for visual feedback.
 
