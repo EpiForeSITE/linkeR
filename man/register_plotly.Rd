@@ -43,7 +43,7 @@ The default behavior uses plotly's built-in point selection highlighting, which
 is simple and works reliably across all plot types.
 }
 \examples{
-\dontrun{
+\donttest{
   # Create a mock session for the example
   session <- shiny::MockShinySession$new()
 
