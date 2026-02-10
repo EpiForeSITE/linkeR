@@ -1,127 +1,209 @@
 library(shiny)
 library(leaflet)
 library(DT)
+library(sf)
+library(dplyr)
 library(linkeR)
-library(bslib)
 
-# Source the modules
+# Source module files
 source("map_module.R")
 source("table_module.R")
 
-# --- Data Generation (copied from basic_app.R) ---
-# Generate realistic wastewater monitoring data for Utah locations
-generate_wastewater_data <- function() {
-  # Real Utah city coordinates
-  utah_locations <- data.frame(
-    city = c("Salt Lake City", "Ogden", "Provo", "West Valley City", "Sandy", 
-             "Orem", "West Jordan", "Layton", "Taylorsville", "Murray"),
-    latitude = c(40.7608, 41.2230, 40.2338, 40.6916, 40.5649, 
-                40.2969, 40.6097, 41.0602, 40.6677, 40.6669),
-    longitude = c(-111.8910, -111.9738, -111.6585, -111.9391, -111.8389,
-                 -111.6946, -111.9391, -111.9710, -111.9391, -111.8879),
-    stringsAsFactors = FALSE
+generate_test_data <- function() {
+  sewershed_centroids <- data.frame(
+    msd_name = c("SITE_A", "SITE_B", "SITE_C", "SITE_D", "SITE_E"),
+    msd_shrtnm = c("Site A", "Site B", "Site C", "Site D", "Site E"),
+    latitude = c(40.7608, 40.7128, 40.7580, 40.7489, 40.7306),
+    longitude = c(-111.8910, -111.9060, -111.8700, -111.8900, -111.9100),
+    concentration = c("Elevated", "Very Elevated", "Low", "Watch", "Very Low"),
+    trend = c("Increasing", "Plateau/indeterminate", "Decreasing", "Increasing", "Insufficient data"),
+    county = c("Salt Lake", "Salt Lake", "Salt Lake", "Salt Lake", "Salt Lake"),
+    lhd = c("Salt Lake County Health", "Salt Lake County Health", "Salt Lake County Health", 
+            "Salt Lake County Health", "Salt Lake County Health")
   )
   
-  n_sites <- nrow(utah_locations)
+  # Convert to sf object
+  sewershed_centroids <- st_as_sf(sewershed_centroids, 
+                                   coords = c("longitude", "latitude"),
+                                   crs = 4326)
   
-  # Generate realistic wastewater monitoring data
-  wastewater_data <- data.frame(
-    id = paste0("WW_", sprintf("%03d", 1:n_sites)),
-    facility_name = paste(utah_locations$city, "WWTP"),
-    city = utah_locations$city,
-    latitude = utah_locations$latitude,
-    longitude = utah_locations$longitude,
-    
-    # Monitoring parameters
-    covid_copies_per_ml = round(10^runif(n_sites, 2, 5.5)), # 100 to ~300,000
-    flow_mgd = round(runif(n_sites, 0.5, 45), 1), # Million gallons per day
-    population_served = round(runif(n_sites, 5000, 200000), -3),
-    
-    # Status based on COVID levels
-    risk_level = factor(
-      ifelse(10^runif(n_sites, 2, 5.5) > 10000, "High",
-             ifelse(10^runif(n_sites, 2, 5.5) > 1000, "Medium", "Low")),
-      levels = c("Low", "Medium", "High")
-    ),
-    
-    # Sample timing
-    last_sample_date = Sys.Date() - sample(0:7, n_sites, replace = TRUE),
-    next_sample_date = Sys.Date() + sample(1:7, n_sites, replace = TRUE),
-    
-    # Additional parameters
-    ph = round(runif(n_sites, 6.5, 8.5), 1),
-    temperature_f = round(runif(n_sites, 45, 75), 1),
-    
-    stringsAsFactors = FALSE
-  )
-  
-  return(wastewater_data)
+  return(sewershed_centroids)
 }
 
-# --- UI ---
+# UI
 ui <- fluidPage(
-  theme = bs_theme(version = 5, bootswatch = "cerulean"),
-  titlePanel("linkeR Module Linking Demonstration"),
+  titlePanel("linkeR Modular App Test - Observer Firing Validation"),
   
-  layout_sidebar(
-    sidebar = sidebar(
-      title = "Dashboard Controls",
-      p("This example demonstrates the issue of using linkeR across 'shiny' modules. 
-         The linking is expected to fail because the component IDs are namespaced."),
-      hr(),
-      verbatimTextOutput("selection_info", placeholder = TRUE)
+  tags$head(
+    tags$style(HTML("
+      .diagnostics {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 15px;
+        margin: 10px 0;
+      }
+      .success { color: #28a745; font-weight: bold; }
+      .warning { color: #ffc107; font-weight: bold; }
+      .error { color: #dc3545; font-weight: bold; }
+    "))
+  ),
+  
+  div(class = "diagnostics",
+    h4("Test Status"),
+    p("This app tests whether linkeR observers fire correctly in a modular structure."),
+    p("Click on map markers or table rows. You should see:"),
+    tags$ul(
+      tags$li(class = "success", "Console messages from linkeR observers"),
+      tags$li(class = "success", "Registry callback firing"),
+      tags$li(class = "success", "Components updating each other")
     ),
-    
-    div(
-      fluidRow(
-        column(7,
-          h4("Wastewater Map (Module 1)"),
-          # Call the map module UI
-          mapUI("map_module")
-        ),
-        column(5,
-          h4("Facility Data (Module 2)"),
-          # Call the table module UI
-          tableUI("table_module")
-        )
-      )
+    verbatimTextOutput("test_status")
+  ),
+  
+  fluidRow(
+    column(6,
+      h3("Map Module"),
+      map_ui("test_map")
+    ),
+    column(6,
+      h3("Table Module"),
+      table_ui("test_table")
     )
+  ),
+  
+  hr(),
+  
+  h3("Selection Details"),
+  div(class = "diagnostics",
+    verbatimTextOutput("selection_info")
+  ),
+  
+  h3("Registry Diagnostics"),
+  div(class = "diagnostics",
+    verbatimTextOutput("diagnostics")
   )
 )
 
-# --- Server ---
+# Server
 server <- function(input, output, session) {
+  cat("\n")
+  cat("═══════════════════════════════════════════════════════════\n")
+  cat("  TEST APP STARTING\n")
+  cat("═══════════════════════════════════════════════════════════\n\n")
   
-  # Reactive data
-  wastewater_data <- reactive({
-    generate_wastewater_data()
-  })
+  # Generate test data
+  sewershed_centroids <- generate_test_data()
   
-  on_selection_change <- function(selected_id, selected_data, source, session) {
-    message("Selection changed to ID: ", selected_id, " from: ", source)
+  # Track events for testing
+  event_log <- reactiveVal(character(0))
+  
+  add_event <- function(msg) {
+    timestamp <- format(Sys.time(), "%H:%M:%OS3")
+    log_entry <- paste0("[", timestamp, "] ", msg)
+    cat(log_entry, "\n")
+    # Use isolate to avoid reactive context issues during initialization
+    isolate({
+      event_log(c(event_log(), log_entry))
+    })
   }
-
-  # Create the link registry
-  registry <- create_link_registry(session, on_selection_change = on_selection_change)
-
-  # Call module servers
-  mapServer("map_module", wastewater_data, registry)
-  tableServer("table_module", wastewater_data, registry)
   
-  # Selection info display
-  output$selection_info <- renderText({
-    if (!is.null(registry)) {
-      selection <- registry$get_selection()
-      if (!is.null(selection$selected_id)) {
-        paste("Selected ID:", selection$selected_id, "\nSource:", selection$source)
-      } else {
-        "No facility selected"
-      }
+  add_event("Creating registry...")
+  
+  # Create registry with callback (same as user's app)
+  registry <- linkeR::create_link_registry(
+    session,
+    on_selection_change = function(selected_id, selected_data, source_id, session) {
+      msg <- sprintf("REGISTRY CALLBACK: ID='%s' Source='%s' Data=%s",
+                     selected_id, 
+                     source_id,
+                     if(!is.null(selected_data)) selected_data$msd_shrtnm else "NULL")
+      add_event(msg)
+    }
+  )
+  
+  add_event("Registry created successfully")
+  
+  # Call modules (passing registry like user's app)
+  add_event("Initializing map module...")
+  map_result <- map_server(
+    "test_map",
+    sewershed_centroids = sewershed_centroids,
+    registry = registry
+  )
+  add_event("Map module initialized")
+  
+  add_event("Initializing table module...")
+  table_result <- table_server(
+    "test_table",
+    table_data = sewershed_centroids,
+    registry = registry
+  )
+  add_event("Table module initialized")
+  
+  # Test status output
+  output$test_status <- renderPrint({
+    events <- event_log()
+    if (length(events) == 0) {
+      cat("No events logged yet.\n")
     } else {
-      "Registry not initialized"
+      cat("Recent events (last 10):\n")
+      cat(paste(tail(events, 10), collapse = "\n"))
     }
   })
+  
+  # Selection info
+  output$selection_info <- renderPrint({
+    sel <- registry$get_selection()
+    cat("Current Selection State:\n")
+    cat("  Selected ID:", sel$selected_id %||% "None", "\n")
+    cat("  Source:", sel$source %||% "None", "\n")
+    
+    if (!is.null(sel$selected_id)) {
+      # Get the full data for this selection
+      data <- sewershed_centroids %>% 
+        filter(msd_name == sel$selected_id)
+      if (nrow(data) > 0) {
+        cat("\n  Site Details:\n")
+        cat("    Name:", data$msd_shrtnm, "\n")
+        cat("    Concentration:", data$concentration, "\n")
+        cat("    Trend:", data$trend, "\n")
+      }
+    }
+    
+    cat("\n")
+    cat("Event Log Count:", length(event_log()), "events\n")
+    
+    # Check if observers are firing
+    events <- event_log()
+    linker_events <- grep("linkeR observer fired", events, value = TRUE)
+    manual_events <- grep("MANUAL observer fired", events, value = TRUE)
+    callback_events <- grep("REGISTRY CALLBACK", events, value = TRUE)
+    
+    cat("\nObserver Activity:\n")
+    cat("  linkeR observers:", length(linker_events), "times\n")
+    cat("  Manual observers:", length(manual_events), "times\n")
+    cat("  Registry callbacks:", length(callback_events), "times\n")
+    
+    if (length(callback_events) > 0) {
+      cat("\nSUCCESS: Observers are firing!\n")
+    } else if (length(manual_events) > 0) {
+      cat("\nWARNING: Only manual observers firing, linkeR observers may not be working\n")
+    } else {
+      cat("\nERROR: No observers firing - try clicking something!\n")
+    }
+  })
+  
+  # Diagnostics output
+  output$diagnostics <- renderPrint({
+    linkeR::diagnose_registry(registry, session)
+  })
+  
+  add_event("App initialization complete")
+  cat("\n")
+  cat("═══════════════════════════════════════════════════════════\n")
+  cat("  APP READY - Try clicking on map markers or table rows\n")
+  cat("═══════════════════════════════════════════════════════════\n\n")
 }
 
-# Run the app
 shinyApp(ui, server)

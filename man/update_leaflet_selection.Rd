@@ -4,7 +4,13 @@
 \alias{update_leaflet_selection}
 \title{Update Leaflet Map Selection}
 \usage{
-update_leaflet_selection(component_id, selected_id, session, components)
+update_leaflet_selection(
+  component_id,
+  selected_id,
+  session,
+  components,
+  namespaced_id = NULL
+)
 }
 \arguments{
 \item{component_id}{Character string. The ID of the Leaflet map component to update.}
@@ -47,3 +53,4 @@ Required columns in the component data:
 If the leaflet package is not available, the function returns early without error.
 Missing required columns will generate a warning and cause early return.
 }
+\keyword{internal}

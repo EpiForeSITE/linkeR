@@ -121,7 +121,10 @@ register_leaflet <- function(session, registry, leaflet_output_id, data_reactive
 #' - Only responds to selections from other components (not self-selections)
 #' - Updates the map visualization to reflect the new selection
 setup_leaflet_observers <- function(component_id, session, components, shared_state, on_selection_change, registry = NULL) {
+  namespaced_id <- session$ns(component_id)
+  
   # Observer for map marker clicks
+  # Use component_id (raw ID) for input listening, but namespaced_id for registry operations
   observer1 <- shiny::observeEvent(session$input[[paste0(component_id, "_marker_click")]],
     {
       clicked_event <- session$input[[paste0(component_id, "_marker_click")]]
@@ -129,8 +132,8 @@ setup_leaflet_observers <- function(component_id, session, components, shared_st
 
       clicked_marker_id <- clicked_event$id
 
-      # Get the component info
-      component_info <- components[[component_id]]
+      # Get the component info using namespaced_id
+      component_info <- components[[namespaced_id]]
       
       # ALWAYS use the processed data for selection
       current_data <- component_info$data_reactive()  # This is the processed data
@@ -154,27 +157,28 @@ setup_leaflet_observers <- function(component_id, session, components, shared_st
       }
 
       if (!is.null(registry) && !is.null(registry$set_selection)) {
-        registry$set_selection(clicked_marker_id, component_id)
+        registry$set_selection(clicked_marker_id, namespaced_id)  # Use namespaced_id for source
       } else {
         # Fallback to direct update if registry not available
         shared_state$selected_id <- clicked_marker_id
-        shared_state$selection_source <- component_id
+        shared_state$selection_source <- namespaced_id  # Use namespaced_id for source
       }
     },
     ignoreNULL = TRUE,
-    ignoreInit = TRUE
+    ignoreInit = TRUE,
+    priority = 1  # Ensure this runs before other observers
   )
 
   # Observer for responding to selections from other components  
   observer2 <- shiny::observeEvent(shared_state$selected_id,
     {
-      # Only respond if selection came from a different component
+      # Only respond if selection came from a different component (use namespaced_id)
       if (!is.null(shared_state$selection_source) &&
-        shared_state$selection_source != component_id) {
+        shared_state$selection_source != namespaced_id) {
         selected_id <- shared_state$selected_id
 
-        # Use the processed data for updates
-        update_leaflet_selection(component_id, selected_id, session, components)
+        # Use the processed data for updates (use namespaced_id to get component)
+        update_leaflet_selection(component_id, selected_id, session, components, namespaced_id)
       }
     },
     ignoreNULL = FALSE,
@@ -277,12 +281,19 @@ apply_default_leaflet_behavior <- function(map_proxy, selected_data, component_i
 #' 
 #' @note If the leaflet package is not available, the function returns early without error.
 #'   Missing required columns will generate a warning and cause early return.
-update_leaflet_selection <- function(component_id, selected_id, session, components) {
+#' @keywords internal
+update_leaflet_selection <- function(component_id, selected_id, session, components, namespaced_id = NULL) {
   if (!requireNamespace("leaflet", quietly = TRUE)) {
     return()
   }
 
-  component_info <- components[[component_id]]
+  # If namespaced_id not provided, try to infer it
+  if (is.null(namespaced_id)) {
+    namespaced_id <- session$ns(component_id)
+  }
+  
+  # Get component info using namespaced_id
+  component_info <- components[[namespaced_id]]
   current_data <- component_info$data_reactive()
 
   # For sf integration: ensure we have processed data with lng/lat columns

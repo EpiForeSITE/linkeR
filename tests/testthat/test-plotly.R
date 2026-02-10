@@ -156,8 +156,9 @@ test_that("setup_plotly_observers creates observers", {
     # Mock callback
   }
 
+  # Use raw component_id, not namespaced_id
   observers <- setup_plotly_observers(
-    "mock-session-test_plot", session, components, shared_state, on_selection_change, registry
+    "test_plot", session, components, shared_state, on_selection_change, registry
   )
 
   # Should return a list of observers

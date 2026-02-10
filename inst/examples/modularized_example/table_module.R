@@ -1,55 +1,100 @@
-# /path/to/your/app/table_module.R
+# Table module - mimics user's summary_table_module.R structure
+# Tests linkeR observer firing in module context
 
-#' Table Module UI
-#'
-#' @param id A character string. The namespace ID.
-#' @return A UI definition.
-tableUI <- function(id) {
+table_ui <- function(id) {
   ns <- NS(id)
-  DTOutput(ns("wastewater_table"))
+  tagList(
+    DTOutput(ns("facilityTable")),
+    hr(),
+    verbatimTextOutput(ns("module_debug"))
+  )
 }
 
-#' Table Module Server
-#'
-#' @param id A character string. The namespace ID.
-#' @param data A reactive expression returning the data frame for the table.
-#' @param registry A link_registry object for managing component linking.
-tableServer <- function(id, data, registry) {
+table_server <- function(id, table_data, registry) {
   moduleServer(id, function(input, output, session) {
-    # Register this component with the central registry
-    register_dt(
-      session = session, # <-- pass the module's session
-      registry = registry,
-      dt_output_id = "wastewater_table", # <-- the local ID
-      data_reactive = data,
-      shared_id_column = "id",
-      click_handler = function(map_proxy, selected_data, session) { # <-- click handler must have map_proxy, selected_data, session, overrides all default behavior
-        print("The DT table component was just clicked!")
+    cat("\n[TABLE MODULE] Starting for id:", id, "\n")
+    cat("[TABLE MODULE] Session namespace:", session$ns(""), "\n")
+    
+    # Manual click counter for comparison
+    manual_clicks <- reactiveVal(0)
+    linker_clicks <- reactiveVal(0)
+    
+    # Prepare data for DT (remove geometry)
+    table_data_df <- reactive({
+      data <- table_data
+      if (inherits(data, "sf")) {
+        data <- st_drop_geometry(data)
       }
+      data
+    })
+    
+    # Register DT component with linkeR (BEFORE rendering)
+    cat("[TABLE MODULE] Registering DT component 'facilityTable'...\n")
+    
+    linkeR::register_dt(
+      session = session,
+      registry = registry,
+      dt_output_id = "facilityTable",
+      data_reactive = table_data_df,
+      shared_id_column = "msd_name"
     )
-
-    output$wastewater_table <- renderDT({
-      table_data <- data()[, c("facility_name", "city", "risk_level", 
-                               "covid_copies_per_ml", "population_served", 
-                               "last_sample_date")]
+    
+    cat("[TABLE MODULE] DT component registered successfully\n")
+    
+    # Render the table (AFTER registration)
+    output$facilityTable <- renderDT({
+      cat("[TABLE MODULE] Rendering DT table...\n")
+      
+      df <- table_data_df()
       
       datatable(
-        table_data,
+        df,
         selection = "single",
         rownames = FALSE,
-        colnames = c("Facility", "City", "Risk", "COVID Copies/mL", 
-                     "Population", "Last Sample"),
         options = list(
-          pageLength = 8,
-          scrollX = TRUE,
-          order = list(list(3, 'desc'))
+          pageLength = 10,
+          scrollX = TRUE
         )
-      ) %>%
-        formatCurrency(c("covid_copies_per_ml", "population_served"), currency = "", digits = 0) %>%
-        formatStyle("risk_level",
-                    backgroundColor = styleEqual(c("Low", "Medium", "High"), 
-                                                 c("lightgreen", "orange", "lightcoral"))
-        )
+      )
     })
+    
+    # Manual observer for comparison (mimics user's workaround)
+    observeEvent(input$facilityTable_rows_selected, {
+      cat("[TABLE MODULE - MANUAL] Manual observer fired!\n")
+      manual_clicks(manual_clicks() + 1)
+      
+      selected_row <- input$facilityTable_rows_selected
+      if (!is.null(selected_row) && length(selected_row) > 0) {
+        df <- table_data_df()
+        if (selected_row <= nrow(df)) {
+          clicked_id <- df$msd_name[selected_row]
+          cat("[TABLE MODULE - MANUAL] Selected ID:", clicked_id, "\n")
+          
+          # This demonstrates what the user had to do as a workaround
+          # If linkeR is working, this should be redundant
+        }
+      }
+    })
+    
+    # Debug output
+    output$module_debug <- renderPrint({
+      cat("Table Module Status:\n")
+      cat("  linkeR selections:", linker_clicks(), "\n")
+      cat("  Manual selections:", manual_clicks(), "\n")
+      cat("  Input name:", session$ns("facilityTable_rows_selected"), "\n")
+      cat("  Current selection:", paste(input$facilityTable_rows_selected, collapse = ", "), "\n")
+      
+      if (linker_clicks() > 0) {
+        cat("\nlinkeR observers are WORKING!\n")
+      } else if (manual_clicks() > 0) {
+        cat("\nManual observers work, but linkeR not firing yet\n")
+      } else {
+        cat("\n→ Click a table row to test\n")
+      }
+    })
+    
+    return(list(
+      selected_row = reactive(input$facilityTable_rows_selected)
+    ))
   })
 }

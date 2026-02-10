@@ -4,7 +4,13 @@
 \alias{update_dt_selection}
 \title{Update DT Selection Based on Shared ID}
 \usage{
-update_dt_selection(component_id, selected_id, session, components)
+update_dt_selection(
+  component_id,
+  selected_id,
+  session,
+  components,
+  namespaced_id = NULL
+)
 }
 \arguments{
 \item{component_id}{Character string. The ID of the DT component to update.}
