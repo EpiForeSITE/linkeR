@@ -33,6 +33,7 @@ reference:
   - register_dt
   - register_plotly
   - prepare_plotly_linking
+  - diagnose_registry
 
 - title: "Internal Functions"
   desc: "Internal functions for advanced users"
