@@ -21,6 +21,8 @@ update_dt_selection(
 
 \item{components}{List containing component configuration information, including
 data reactives, shared ID columns, and optional custom click handlers.}
+
+\item{namespaced_id}{Character string. The namespaced ID of the component, used for registry lookups. If NULL, it will be inferred from session$ns(component_id).}
 }
 \value{
 NULL (invisible). Function is called for side effects only.

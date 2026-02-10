@@ -23,6 +23,8 @@ indicates deselection.}
 \item{components}{List. A named list containing component information, where each
 element contains component configuration including data_reactive, shared_id_column,
 and config settings.}
+
+\item{namespaced_id}{Character string. The namespaced ID of the component, used for registry lookups. If NULL, it will be inferred from session$ns(component_id).}
 }
 \value{
 NULL (invisibly). The function is called for its side effects on the Leaflet map.

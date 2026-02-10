@@ -54,33 +54,24 @@ diagnose_registry <- function(registry, session) {
     cat("Make sure you call register_leaflet() or register_dt() BEFORE rendering the outputs.\n")
   } else {
     cat("Found", length(components), "registered component(s):\n")
+    cat("Note: Component IDs shown below are namespaced (e.g., 'module-id').\n")
+    cat("      Within module sessions, actual input names use the raw component ID only.\n\n")
     for (comp_id in names(components)) {
       comp <- components[[comp_id]]
       cat(sprintf("  - %s (type: %s, shared_id: %s)\n", 
                   comp_id, comp$type, comp$shared_id_column))
       
       # Check expected input names
+      # NOTE: comp_id is the namespaced ID used for storage in the registry
+      # The actual input listener uses the raw component ID within the module's session
       if (comp$type == "leaflet") {
         expected_input <- paste0(comp_id, "_marker_click")
-        cat(sprintf("    Expected input: %s\n", expected_input))
-        
-        # Try to check if input exists (only works if output has been rendered)
-        if (!is.null(session$input[[expected_input]])) {
-          cat(sprintf("    Input exists: %s\n", expected_input))
-        } else {
-          cat(sprintf("    Input doesn't exist yet (or no selection made): %s\n", expected_input))
-          cat("      This is normal if the map hasn't been clicked yet.\n")
-        }
+        cat(sprintf("    Stored as: %s\n", comp_id))
+        cat(sprintf("    (In modules: observers listen to raw ID + suffix in module session)\n"))
       } else if (comp$type == "datatable") {
         expected_input <- paste0(comp_id, "_rows_selected")
-        cat(sprintf("    Expected input: %s\n", expected_input))
-        
-        if (!is.null(session$input[[expected_input]])) {
-          cat(sprintf("    Input exists: %s\n", expected_input))
-        } else {
-          cat(sprintf("    Input doesn't exist yet (or no selection made): %s\n", expected_input))
-          cat("      This is normal if no row has been selected yet.\n")
-        }
+        cat(sprintf("    Stored as: %s\n", comp_id))
+        cat(sprintf("    (In modules: observers listen to raw ID + suffix in module session)\n"))
       }
     }
   }

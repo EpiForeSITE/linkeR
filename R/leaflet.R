@@ -259,7 +259,8 @@ apply_default_leaflet_behavior <- function(map_proxy, selected_data, component_i
 #' @param components List. A named list containing component information, where each
 #'   element contains component configuration including data_reactive, shared_id_column,
 #'   and config settings.
-#'
+#' @param namespaced_id Character string. The namespaced ID of the component, used for registry lookups. If NULL, it will be inferred from session$ns(component_id).
+#' 
 #' @details
 #' The function performs the following operations:
 #' \itemize{
