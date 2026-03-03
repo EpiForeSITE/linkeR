@@ -1,3 +1,8 @@
+# linkeR v0.1.4
+
+* Fixes an issue where session namespaced IDs were not properly initializing observers, causing modular shiny apps to not have correct click behavior
+* Adds a `diagnose_registry` function that can help users with registry problem diagnosis
+
 # linkeR v0.1.3
 
 * Adds support for plotly components (single selection only)

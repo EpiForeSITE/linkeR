@@ -117,9 +117,18 @@ create_link_registry <- function(session, on_selection_change = NULL) {
       }
       session$userData[["linkeR_components"]][[component_id]] <- components[[namespaced_id]]
 
-      # Set up component-specific observers and store them
+      # Pass the RAW component_id to observers, not the namespaced one
+      # The observer needs to listen to input[[component_id_...]] within the module's session,
+      # not input[[namespaced_id_...]] which doesn't exist in that session.
+      # For example: in a module with ns="test_map-", the input is "combo_map_marker_click",
+      # NOT "test_map-combo_map_marker_click"
       observers[[namespaced_id]] <<- setup_component_observers(
-        namespaced_id, type, session, components, shared_state, on_selection_change,
+        component_id,
+        type, 
+        session,  # Module's session
+        components, 
+        shared_state, 
+        on_selection_change,
         registry = list(set_selection = registry$set_selection)
       )
 

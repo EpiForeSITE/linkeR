@@ -87,7 +87,8 @@ register_dt <- function(session, registry, dt_output_id, data_reactive, shared_i
 #' proper synchronization between the DataTable component and other application components.
 setup_datatable_observers <- function(component_id, session, components, shared_state, on_selection_change, registry = NULL) {
   # Use session userData to store the flag - this persists across observer calls
-  flag_name <- paste0(component_id, "_updating_selection")
+  namespaced_id <- session$ns(component_id)
+  flag_name <- paste0(namespaced_id, "_updating_selection")  # Use namespaced_id for flag
 
   # The flag exists to prevent infinite loops when multiple components interact.
   # For example, when user clicks Map A:
@@ -100,6 +101,7 @@ setup_datatable_observers <- function(component_id, session, components, shared_
     # 7. After 100ms: flag is reset to FALSE
 
   # Observer for table row selections (USER CLICKS ONLY)
+  # Use component_id (raw ID) for input listening, but namespaced_id for registry operations
   observer1 <- shiny::observeEvent(session$input[[paste0(component_id, "_rows_selected")]],
     {
       # Check session-level flag
@@ -110,47 +112,48 @@ setup_datatable_observers <- function(component_id, session, components, shared_
       selected_rows <- session$input[[paste0(component_id, "_rows_selected")]]
 
       if (length(selected_rows) > 0) {
-        # Get the component info
-        component_info <- components[[component_id]]
+        # Get the component info using namespaced_id
+        component_info <- components[[namespaced_id]]
         current_data <- component_info$data_reactive()
 
         # Get the selected ID (use first selection if multiple)
         selected_id <- current_data[[component_info$shared_id_column]][selected_rows[1]]
 
-        # THIS IS CORRECT - USER CLICK SHOULD CALL set_selection
+        # THIS IS CORRECT - USER CLICK SHOULD CALL set_selection (use namespaced_id for source)
         if (!is.null(registry) && !is.null(registry$set_selection)) {
-          registry$set_selection(selected_id, component_id)
+          registry$set_selection(selected_id, namespaced_id)
         } else {
           shared_state$selected_id <- selected_id
-          shared_state$selection_source <- component_id
+          shared_state$selection_source <- namespaced_id
         }
       } else {
         # Clear selection
         if (!is.null(registry) && !is.null(registry$set_selection)) {
-          registry$set_selection(NULL, component_id)
+          registry$set_selection(NULL, namespaced_id)
         } else {
           shared_state$selected_id <- NULL
-          shared_state$selection_source <- component_id
+          shared_state$selection_source <- namespaced_id
         }
       }
     },
     ignoreNULL = FALSE,
-    ignoreInit = TRUE
+    ignoreInit = TRUE,
+    priority = 1  # Ensure this runs before other observers
   )
 
   # Observer for responding to selections from other components (VISUAL UPDATES ONLY)
   observer2 <- shiny::observeEvent(shared_state$selected_id,
     {
-      # Only respond if selection came from a different component
+      # Only respond if selection came from a different component (use namespaced_id)
       if (!is.null(shared_state$selection_source) &&
-        shared_state$selection_source != component_id) {
+        shared_state$selection_source != namespaced_id) {
         selected_id <- shared_state$selected_id
 
         # Set session-level flag to prevent recursive calls
         session$userData[[flag_name]] <- TRUE
 
         # THIS SHOULD ONLY UPDATE VISUAL STATE - NO set_selection CALLS!
-        update_dt_selection(component_id, selected_id, session, components)
+        update_dt_selection(component_id, selected_id, session, components, namespaced_id)
 
         # Reset flag after a short delay to allow DT event to be processed and ignored
         later::later(function() {
@@ -177,6 +180,7 @@ setup_datatable_observers <- function(component_id, session, components, shared_
 #' @param session 'shiny' session object for the current user session.
 #' @param components List containing component configuration information, including
 #'   data reactives, shared ID columns, and optional custom click handlers.
+#' @param namespaced_id Character string. The namespaced ID of the component, used for registry lookups. If NULL, it will be inferred from session$ns(component_id).
 #'
 #' @details
 #' The function performs the following steps:
@@ -196,12 +200,18 @@ setup_datatable_observers <- function(component_id, session, components, shared_
 #' Otherwise, default row selection/deselection is performed.
 #'
 #' @return NULL (invisible). Function is called for side effects only.
-update_dt_selection <- function(component_id, selected_id, session, components) {
+update_dt_selection <- function(component_id, selected_id, session, components, namespaced_id = NULL) {
   if (!requireNamespace("DT", quietly = TRUE)) {
     return()
   }
 
-  component_info <- components[[component_id]]
+  # If namespaced_id not provided, try to infer it
+  if (is.null(namespaced_id)) {
+    namespaced_id <- session$ns(component_id)
+  }
+  
+  # Get component info using namespaced_id
+  component_info <- components[[namespaced_id]]
   if (is.null(component_info)) {
     return()
   }
@@ -210,7 +220,7 @@ update_dt_selection <- function(component_id, selected_id, session, components) 
 
   # Validate shared ID column exists
   if (!component_info$shared_id_column %in% names(current_data)) {
-    warning("Shared ID column '", component_info$shared_id_column, "' not found in DT data for component: ", component_id)
+    warning("Shared ID column '", component_info$shared_id_column, "' not found in DT data for component: ", namespaced_id)
     return()
   }
 

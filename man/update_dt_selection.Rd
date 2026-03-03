@@ -4,7 +4,13 @@
 \alias{update_dt_selection}
 \title{Update DT Selection Based on Shared ID}
 \usage{
-update_dt_selection(component_id, selected_id, session, components)
+update_dt_selection(
+  component_id,
+  selected_id,
+  session,
+  components,
+  namespaced_id = NULL
+)
 }
 \arguments{
 \item{component_id}{Character string. The ID of the DT component to update.}
@@ -15,6 +21,8 @@ update_dt_selection(component_id, selected_id, session, components)
 
 \item{components}{List containing component configuration information, including
 data reactives, shared ID columns, and optional custom click handlers.}
+
+\item{namespaced_id}{Character string. The namespaced ID of the component, used for registry lookups. If NULL, it will be inferred from session$ns(component_id).}
 }
 \value{
 NULL (invisible). Function is called for side effects only.

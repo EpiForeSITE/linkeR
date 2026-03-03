@@ -4,7 +4,13 @@
 \alias{update_leaflet_selection}
 \title{Update Leaflet Map Selection}
 \usage{
-update_leaflet_selection(component_id, selected_id, session, components)
+update_leaflet_selection(
+  component_id,
+  selected_id,
+  session,
+  components,
+  namespaced_id = NULL
+)
 }
 \arguments{
 \item{component_id}{Character string. The ID of the Leaflet map component to update.}
@@ -17,6 +23,8 @@ indicates deselection.}
 \item{components}{List. A named list containing component information, where each
 element contains component configuration including data_reactive, shared_id_column,
 and config settings.}
+
+\item{namespaced_id}{Character string. The namespaced ID of the component, used for registry lookups. If NULL, it will be inferred from session$ns(component_id).}
 }
 \value{
 NULL (invisibly). The function is called for its side effects on the Leaflet map.
@@ -47,3 +55,4 @@ Required columns in the component data:
 If the leaflet package is not available, the function returns early without error.
 Missing required columns will generate a warning and cause early return.
 }
+\keyword{internal}

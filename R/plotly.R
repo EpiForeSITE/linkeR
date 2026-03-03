@@ -354,10 +354,11 @@ register_plotly <- function(session, registry, plotly_output_id, data_reactive, 
 #' @return NULL. This function is called for its side effects of setting up observers.
 setup_plotly_observers <- function(component_id, session, components, shared_state, on_selection_change, registry = NULL) {
   # Use session userData to store the flag - this persists across observer calls
-  flag_name <- paste0(component_id, "_updating_selection")
+  namespaced_id <- session$ns(component_id)
+  flag_name <- paste0(namespaced_id, "_updating_selection")
 
-  # Get component configuration
-  component_info <- components[[component_id]]
+  # Get component configuration using namespaced_id
+  component_info <- components[[namespaced_id]]
   if (is.null(component_info)) {
     warning("Component info not found for plotly component: ", component_id)
     return()
