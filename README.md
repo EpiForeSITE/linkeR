@@ -17,6 +17,11 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 Group](https://github.com/EpiForeSITE/software/raw/e82ed88f75e0fe5c0a1a3b38c2b94509f122019c/docs/assets/foresite-software-badge.svg)](https://github.com/EpiForeSITE)
 <!-- badges: end -->
 
+This project was made possible by cooperative agreement CDC-RFA-FT-23-0069
+from the CDC's Center for Forecasting and Outbreak Analytics. Its contents are
+solely the responsibility of the authors and do not necessarily represent the
+official views of the Centers for Disease Control and Prevention.
+
 > **Create synchronized, interactive dashboards where one click updates
 > multiple components**
 
