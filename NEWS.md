@@ -1,3 +1,7 @@
+# linkeR (development version)
+
+* Added the ForeSITE pkgdown brand and weekly brand-sync workflow.
+
 # linkeR v0.1.4
 
 * Fixes an issue where session namespaced IDs were not properly initializing observers, causing modular shiny apps to not have correct click behavior

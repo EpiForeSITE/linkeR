@@ -1,8 +1,9 @@
 url: https://EpiForeSITE.github.io/linkeR/
 template:
   bootstrap: 5
+  light-switch: false
   bslib:
-    primary: "#0054AD"
+    brand: pkgdown/brand/_brand.yml
     border-radius: 0.5rem
     btn-border-radius: 0.25rem
 
@@ -13,9 +14,23 @@ home:
     plots and tables in 'shiny' applications.
 
 navbar:
+  bg: light
   structure:
     left: [intro, reference, articles, tutorials, news]
     right: [search, github]
+
+footer:
+  structure:
+    left: [developed_by, foresite]
+    right: built_with
+  components:
+    foresite: >-
+      Part of the [ForeSITE](https://github.com/EpiForeSITE) software
+      ecosystem. This project was made possible by cooperative agreement
+      CDC-RFA-FT-23-0069 from the CDC's Center for Forecasting and Outbreak
+      Analytics. Its contents are solely the responsibility of the authors and do
+      not necessarily represent the official views of the Centers for Disease
+      Control and Prevention.
 
 reference:
 - title: "Main Function"

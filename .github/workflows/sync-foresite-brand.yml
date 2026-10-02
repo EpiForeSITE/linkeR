@@ -1,0 +1,16 @@
+name: Sync ForeSITE brand
+
+on:
+  schedule:
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    uses: EpiForeSITE/rbranding/.github/workflows/sync-foresite-brand.yml@main
+    with:
+      source-ref: main
